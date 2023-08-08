@@ -19,3 +19,4 @@ Cargo.lock
 /target
 
 config.json
+index.db

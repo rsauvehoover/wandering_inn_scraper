@@ -27,7 +27,7 @@ pub struct Config {
     pub toc_url: String,
     // number of seconds to wait before allowing another request to be made
     // avoids being ip banned
-    pub rate_delay: u8, 
+    pub request_delay: u8,
 }
 
 pub fn load_config() -> Config {
