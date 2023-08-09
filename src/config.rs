@@ -1,4 +1,3 @@
-use log::info;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -63,17 +62,22 @@ impl Default for Config {
 }
 
 pub fn load_config() -> Config {
+    if !std::path::Path::new("config.json").exists() {
+        println!("No config.json found, using default values");
+        println!("Request delay is 1000ms");
+        return Config::default();
+    }
     match std::fs::read_to_string("config.json") {
         Ok(str) => match serde_json::from_str::<Config>(&str) {
             Ok(config) => {
-                info!("Loaded config");
-                info!("Delay is {}ms", config.request_delay);
-                info!(
+                println!("Loaded config");
+                println!("Delay is {}ms", config.request_delay);
+                println!(
                     "Sending from <{}> at <{}>",
                     config.mail.name, config.mail.address
                 );
                 for dest in &config.mail.destinations {
-                    info!("Sending to <{}> at <{}>", dest.name, dest.email);
+                    println!("Sending to <{}> at <{}>", dest.name, dest.email);
                 }
                 config
             }

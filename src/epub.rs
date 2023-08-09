@@ -4,7 +4,6 @@ use hex;
 use image::io::Reader as ImageReader;
 use image::Rgba;
 use imageproc::drawing::draw_text_mut;
-use log::info;
 use regex::Regex;
 use rusqlite::Connection;
 use rusttype::{Font, Scale};
@@ -232,13 +231,13 @@ pub fn generate_epubs(
     let volumes = db::get_volumes_to_regenerate(db_conn)?;
 
     if volumes.len() == 0 {
-        info!("No volumes to generate");
+        println!("No volumes to generate");
     } else {
-        info!("Generating epubs for {} volumes", volumes.len());
+        println!("Generating epubs for {} volumes", volumes.len());
     }
 
     for volume in volumes {
-        info!("Generating epub for {}", volume.name);
+        println!("Generating epub for {}", volume.name);
         let chapters = db::get_chapters_by_volume(db_conn, volume.id)?;
         generate_volume(
             db_conn,
@@ -259,10 +258,10 @@ pub fn generate_epubs(
 
     let chapters = db::get_chapters_to_regenerate(db_conn)?;
     if chapters.len() == 0 {
-        info!("No chapters to generate");
+        println!("No chapters to generate");
         return Ok(());
     }
-    info!("Generating epubs for {} chapters", chapters.len());
+    println!("Generating epubs for {} chapters", chapters.len());
     generate_chapters(db_conn, &chapters, &build_dir.join("chapters"), true)?;
     generate_chapters(
         db_conn,

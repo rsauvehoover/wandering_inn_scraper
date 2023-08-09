@@ -1,6 +1,5 @@
 use hyper::{Client, Uri};
 use hyper_tls::HttpsConnector;
-use log::info;
 use regex::Regex;
 use rusqlite::{Connection, Result};
 use soup::prelude::*;
@@ -22,7 +21,7 @@ pub async fn update_index(
     db_conn: &Connection,
     toc_url: String,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    info!("(Re)Building index");
+    println!("(Re)Building index");
 
     let soup = get_html(toc_url).await?;
 
@@ -37,10 +36,10 @@ pub async fn update_index(
             db::add_chapter(db_conn, title, uri, volume_id)?;
             count += 1;
         }
-        info!("Indexed {volume_title} with {count} chapters");
+        println!("Indexed {volume_title} with {count} chapters");
     }
 
-    info!("Finished building index");
+    println!("Finished building index");
 
     Ok(())
 }
@@ -93,20 +92,20 @@ pub async fn download_all_chapters(
     let chapters = db::get_empty_chapters(db_conn)?;
 
     if chapters.len() == 0 {
-        info!("No chapters to download");
+        println!("No chapters to download");
     } else {
-        info!("Downloading {} missing chapters", chapters.len());
+        println!("Downloading {} missing chapters", chapters.len());
     }
     let mut count = 0;
     for chapter in chapters {
         if count % 10 == 0 && count != 0 {
-            info!("Downloaded {} chapters", count);
+            println!("Downloaded {} chapters", count);
         }
         thread::sleep(Duration::from_millis(delay));
         download_chapter(db_conn, chapter).await?;
         count += 1;
     }
-    info!(
+    println!(
         "{}",
         if count > 0 {
             format!("Done downloading {count} chapters")

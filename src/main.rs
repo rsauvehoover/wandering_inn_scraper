@@ -1,7 +1,4 @@
-use log::error;
-use simple_logger;
 use std::path::Path;
-use std::process::exit;
 
 // mod mail;
 mod config;
@@ -11,8 +8,6 @@ mod scraper;
 
 #[tokio::main]
 async fn main() {
-    simple_logger::init_with_level(log::Level::Info).unwrap();
-
     let config = config::load_config();
 
     // let deststuff: Vec<(String, String)> = config.destinations.into_iter().map(|dest| (dest.name, dest.email)).collect();
@@ -20,23 +15,22 @@ async fn main() {
     let conn = match db::open() {
         Ok(conn) => conn,
         Err(e) => {
-            error!("Error opening database: {}", e);
-            exit(1);
+            panic!("Error opening database: {}", e);
         }
     };
 
     match scraper::update_index(&conn, config.toc_url).await {
         Ok(_) => (),
-        Err(e) => error!("Error updating index: {}", e),
+        Err(e) => panic!("Error updating index: {}", e),
     }
 
     match scraper::download_all_chapters(&conn, config.request_delay).await {
         Ok(_) => (),
-        Err(e) => error!("Error getting chapters: {}", e),
+        Err(e) => panic!("Error getting chapters: {}", e),
     }
 
     match epub::generate_epubs(&conn, Path::new("build/")) {
         Ok(_) => (),
-        Err(e) => error!("Error generating epubs: {}", e),
+        Err(e) => panic!("Error generating epubs: {}", e),
     }
 }

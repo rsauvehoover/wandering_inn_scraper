@@ -1,4 +1,5 @@
 use rusqlite::{Connection, OptionalExtension, Params, Result};
+use std::path::Path;
 
 pub struct Chapter {
     pub id: usize,
@@ -14,6 +15,8 @@ pub struct Volume {
 }
 
 pub fn open() -> Result<Connection> {
+    std::fs::create_dir_all(Path::new("db")).unwrap();
+
     let conn = Connection::open("db/index.db")?;
 
     conn.execute(
@@ -35,7 +38,7 @@ pub fn open() -> Result<Connection> {
         data_id INTEGER,
         regenerate_epub INTEGER DEFAULT 0 CHECK(regenerate_epub IN (0, 1)),
         FOREIGN KEY(data_id) REFERENCES raw_data(id),
-        FOREIGN KEY(volumeid) REFERENCES volume(id),
+        FOREIGN KEY(volumeid) REFERENCES volumes(id),
         UNIQUE(name, uri, volumeid)
     )",
         (),
@@ -97,7 +100,7 @@ pub fn add_chapter_data(db_conn: &Connection, chapter_id: usize, data: &String) 
         })?;
     db_conn
         .prepare("UPDATE chapters SET data_id = ?1, regenerate_epub = ?2 WHERE id = ?3")?
-        .execute([data_id, !regenerate as usize, chapter_id])?;
+        .execute([data_id, regenerate as usize, chapter_id])?;
 
     let volume_id: usize = db_conn.query_row(
         "SELECT volumeid FROM chapters WHERE id = ?1",
@@ -105,8 +108,8 @@ pub fn add_chapter_data(db_conn: &Connection, chapter_id: usize, data: &String) 
         |row| row.get(0),
     )?;
     db_conn
-        .prepare("UPDATE volumes SET regenerate_epub = ?2 WHERE id = ?2")?
-        .execute([!regenerate as usize, volume_id])?;
+        .prepare("UPDATE volumes SET regenerate_epub = ?1 WHERE id = ?2")?
+        .execute([regenerate as usize, volume_id])?;
     Ok(())
 }
 
@@ -122,7 +125,7 @@ where
                 name: row.get(1)?,
                 uri: row.get(2)?,
                 volumeid: row.get(3)?,
-                data_id: row.get(4)?,
+                data_id: match row.get(4) { Ok(id) => id, Err(_) => 0 },
             })
         })?
         .collect();
