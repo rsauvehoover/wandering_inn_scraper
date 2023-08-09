@@ -6,7 +6,9 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+color-name = "1.1.0"
 epub-builder = "0.7.1"
+hex = "0.4.3"
 hyper = { version = "0.14.27", features = ["full"] }
 hyper-tls = "0.5.0"
 image = "0.24.7"

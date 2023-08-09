@@ -1,6 +1,19 @@
-use rusqlite::{Connection, OptionalExtension, Result};
+use rusqlite::{Connection, OptionalExtension, Params, Result};
 
-pub fn db_open() -> Result<Connection> {
+pub struct Chapter {
+    pub id: usize,
+    pub name: String,
+    pub uri: String,
+    pub volumeid: usize,
+    pub data_id: usize,
+}
+
+pub struct Volume {
+    pub id: usize,
+    pub name: String,
+}
+
+pub fn open() -> Result<Connection> {
     let conn = Connection::open("db/index.db")?;
 
     conn.execute(
@@ -42,7 +55,7 @@ pub fn db_open() -> Result<Connection> {
     Ok(conn)
 }
 
-pub fn db_add_volume(db_conn: &Connection, name: &String) -> Result<usize> {
+pub fn add_volume(db_conn: &Connection, name: &String) -> Result<usize> {
     db_conn
         .prepare("INSERT OR IGNORE INTO volumes(name) values(?1)")?
         .execute([name])?;
@@ -53,12 +66,7 @@ pub fn db_add_volume(db_conn: &Connection, name: &String) -> Result<usize> {
     )
 }
 
-pub fn db_add_chapter(
-    db_conn: &Connection,
-    name: String,
-    uri: String,
-    volume: usize,
-) -> Result<()> {
+pub fn add_chapter(db_conn: &Connection, name: String, uri: String, volume: usize) -> Result<()> {
     db_conn
         .prepare("INSERT OR IGNORE INTO chapters(name, uri, volumeid) values(?1, ?2, ?3)")?
         .execute((name, uri, volume))?;
@@ -81,12 +89,110 @@ pub fn add_chapter_data(db_conn: &Connection, chapter_id: usize, data: &String) 
     db_conn
         .prepare("INSERT OR REPLACE INTO raw_data(data, chapter_id) values(?1, ?2)")?
         .execute((data, chapter_id))?;
+
+    let regenerate = !existing_data.eq(data);
     let data_id: usize =
         db_conn.query_row("SELECT id FROM raw_data WHERE data = ?1", [data], |row| {
             row.get(0)
         })?;
     db_conn
         .prepare("UPDATE chapters SET data_id = ?1, regenerate_epub = ?2 WHERE id = ?3")?
-        .execute([data_id, !existing_data.eq(data) as usize, chapter_id])?;
+        .execute([data_id, !regenerate as usize, chapter_id])?;
+
+    let volume_id: usize = db_conn.query_row(
+        "SELECT volumeid FROM chapters WHERE id = ?1",
+        [chapter_id],
+        |row| row.get(0),
+    )?;
+    db_conn
+        .prepare("UPDATE volumes SET regenerate_epub = ?2 WHERE id = ?2")?
+        .execute([!regenerate as usize, chapter_id])?;
+    Ok(())
+}
+
+fn chapter_query_helper<P>(db_conn: &Connection, sql: &str, params: P) -> Result<Vec<Chapter>>
+where
+    P: Params,
+{
+    let mut stmt = db_conn.prepare(sql)?;
+    let res = stmt
+        .query_map(params, |row| {
+            Ok(Chapter {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                uri: row.get(2)?,
+                volumeid: row.get(3)?,
+                data_id: row.get(4)?,
+            })
+        })?
+        .collect();
+    res
+}
+
+fn volume_query_helper<P>(db_conn: &Connection, sql: &str, params: P) -> Result<Vec<Volume>>
+where
+    P: Params,
+{
+    let mut stmt = db_conn.prepare(sql)?;
+    let res = stmt
+        .query_map(params, |row| {
+            Ok(Volume {
+                id: row.get(0)?,
+                name: row.get(1)?,
+            })
+        })?
+        .collect();
+    res
+}
+
+pub fn get_chapter_data(db_conn: &Connection, chapter_id: usize) -> Result<String> {
+    let res = db_conn.query_row(
+        "SELECT data FROM raw_data WHERE chapter_id = ?1",
+        [chapter_id],
+        |row| row.get(0),
+    )?;
+    Ok(res)
+}
+
+pub fn get_chapters_by_volume(db_conn: &Connection, volume_id: usize) -> Result<Vec<Chapter>> {
+    let res = chapter_query_helper(
+        db_conn,
+        "SELECT id, name, uri, volumeid, data_id FROM chapters WHERE volumeid = ?1",
+        [volume_id],
+    );
+    res
+}
+
+pub fn get_empty_chapters(db_conn: &Connection) -> Result<Vec<Chapter>> {
+    let res = chapter_query_helper(
+        db_conn,
+        "SELECT id, name, uri, volumeid, data_id FROM chapters WHERE data_id IS NULL",
+        [],
+    );
+    res
+}
+
+pub fn get_chapters_to_regenerate(db_conn: &Connection) -> Result<Vec<Chapter>> {
+    let res = chapter_query_helper(
+        db_conn,
+        "SELECT id, name, uri, volumeid, data_id FROM chapters WHERE regenerate_epub = 1",
+        [],
+    );
+    res
+}
+
+pub fn get_volumes_to_regenerate(db_conn: &Connection) -> Result<Vec<Volume>> {
+    let res = volume_query_helper(
+        db_conn,
+        "SELECT id, name FROM volumes WHERE regenerate_epub = 1",
+        [],
+    );
+    res
+}
+
+pub fn update_generated_volume(db_conn: &Connection, id: usize, regenerate: bool) -> Result<()> {
+    db_conn
+        .prepare("UPDATE volumes SET regenerate_epub = ?1 WHERE id = ?2")?
+        .execute([regenerate as usize, id])?;
     Ok(())
 }

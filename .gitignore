@@ -17,6 +17,7 @@ Cargo.lock
 # Added by cargo
 
 /target
+/build
 
 config.json
 *.db

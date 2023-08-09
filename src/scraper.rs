@@ -28,13 +28,13 @@ pub async fn update_index(
 
     for volume in soup.class("volume-wrapper").find_all() {
         let volume_title = volume.tag("h2").find().unwrap().text();
-        let volume_id: usize = db::db_add_volume(db_conn, &volume_title)?;
+        let volume_id: usize = db::add_volume(db_conn, &volume_title)?;
         let mut count = 0;
         for chapter in volume.class("chapter-entry").find_all() {
             let a = chapter.tag("a").find().unwrap();
             let uri = a.get("href").unwrap();
             let title = a.text();
-            db::db_add_chapter(db_conn, title, uri, volume_id)?;
+            db::add_chapter(db_conn, title, uri, volume_id)?;
             count += 1;
         }
         info!("Indexed {volume_title} with {count} chapters");
@@ -45,17 +45,11 @@ pub async fn update_index(
     Ok(())
 }
 
-async fn get_chapter(
+async fn download_chapter(
     db_conn: &Connection,
-    chapter_id: usize,
+    chapter: db::Chapter,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let uri = db_conn.query_row(
-        "SELECT uri FROM chapters WHERE id = ?1",
-        [chapter_id],
-        |row| row.get(0),
-    )?;
-
-    let soup = get_html(uri).await?;
+    let soup = get_html(chapter.uri).await?;
     let html = soup.class("entry-content").find().unwrap();
 
     let header = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"http://www.w3.org/TR/xhtml11    /DTD/xhtml11.dtd\">
@@ -80,7 +74,7 @@ async fn get_chapter(
 
     db::add_chapter_data(
         db_conn,
-        chapter_id,
+        chapter.id,
         &format!(
             "{}\n{}\n{}\n{}\n",
             header,
@@ -92,12 +86,11 @@ async fn get_chapter(
     Ok(())
 }
 
-pub async fn get_all_chapters(
+pub async fn download_all_chapters(
     db_conn: &Connection,
     delay: u64,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut stmt = db_conn.prepare("SELECT id FROM chapters WHERE data_id IS NULL")?;
-    let chapters = stmt.query_map([], |row| row.get::<usize, usize>(0))?;
+    let chapters = db::get_empty_chapters(db_conn)?;
 
     info!("Downloading all missing chapters");
     let mut count = 0;
@@ -106,7 +99,7 @@ pub async fn get_all_chapters(
             info!("Downloaded {} chapters", count);
         }
         thread::sleep(Duration::from_millis(delay));
-        get_chapter(db_conn, chapter?).await?;
+        download_chapter(db_conn, chapter).await?;
         count += 1;
     }
     info!(
