@@ -92,7 +92,12 @@ pub async fn download_all_chapters(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let chapters = db::get_empty_chapters(db_conn)?;
 
-    info!("Downloading all missing chapters");
+    if chapters.len() == 0 {
+        info!("No chapters to download");
+    }
+    else {
+        info!("Downloading {} missing chapters", chapters.len());
+    }
     let mut count = 0;
     for chapter in chapters {
         if count % 10 == 0 && count != 0 {

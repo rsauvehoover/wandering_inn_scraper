@@ -1,13 +1,13 @@
+use color_name::Color;
 use epub_builder::{EpubBuilder, EpubContent, ZipLibrary};
+use hex;
 use image::io::Reader as ImageReader;
 use image::Rgba;
 use imageproc::drawing::draw_text_mut;
 use log::info;
+use regex::Regex;
 use rusqlite::Connection;
 use rusttype::{Font, Scale};
-use regex::Regex;
-use color_name::Color;
-use hex;
 use std::{
     io::{Cursor, Read, Write},
     path::{Path, PathBuf},
@@ -55,9 +55,45 @@ fn strip_chapter_colour(chapter_data: &str) -> String {
         let colour_arr = hex::decode(&captures[1][1..]).unwrap();
         let name = Color::similar([colour_arr[0], colour_arr[1], colour_arr[2]]);
         format!("{{{a}}}{b}{{{a}}}", a = name, b = &captures[2])
-    }).to_string()
+    })
+    .to_string()
 }
 
+fn generate_chapter(
+    db_conn: &Connection,
+    chapter: &db::Chapter,
+    output_dir: &Path,
+    strip_colour: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut output = Vec::<u8>::new();
+    std::fs::create_dir_all(output_dir.join("individual"))?;
+
+    let mut epub = EpubBuilder::new(ZipLibrary::new()?)?;
+    epub.metadata("author", "pirate aba")?;
+    epub.metadata("lang", "en")?;
+    epub.metadata("title", &chapter.name)?;
+    epub.metadata("generator", "rsauvehoover/wandering-inn-scraper")?;
+    epub.stylesheet(load_stylesheet().as_bytes())?;
+
+    let mut raw_data = db::get_chapter_data(db_conn, chapter.id)?;
+    if strip_colour {
+        raw_data = strip_chapter_colour(&raw_data);
+    }
+    epub.add_content(
+        EpubContent::new(format!("{}({}).xhtml", &chapter.id, &chapter.name), raw_data.as_bytes())
+            .title(&chapter.name),
+    )?;
+
+    epub.generate(&mut output)?;
+
+    let mut file = std::fs::File::create(
+        output_dir
+            .join("individual")
+            .join(format!("{}({}).epub", &chapter.id, &chapter.name)),
+    )?;
+    file.write_all(&output)?;
+    Ok(())
+}
 
 fn generate_chapters(
     db_conn: &Connection,
@@ -65,8 +101,68 @@ fn generate_chapters(
     output_dir: &Path,
     strip_colour: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    std::fs::create_dir_all(&output_dir)?;
+    std::fs::create_dir_all(output_dir.join("combined"))?;
 
+    if chapters.len() == 0 {
+        return Ok(());
+    }
+
+    let mut combined_output = Vec::<u8>::new();
+    let last_chapter = chapters.last().unwrap();
+    let mut combined_epub = EpubBuilder::new(ZipLibrary::new()?)?;
+    combined_epub.metadata("author", "pirate aba")?;
+    combined_epub.metadata("lang", "en")?;
+    combined_epub.metadata(
+        "title",
+        format!(
+            "The Wandering Inn Chapters {}-{}",
+            chapters[0].name, last_chapter.name
+        ),
+    )?;
+    combined_epub.metadata("generator", "rsauvehoover/wandering-inn-scraper")?;
+    combined_epub.stylesheet(load_stylesheet().as_bytes())?;
+
+    let cover_img = generate_cover(
+        &format!("Chapters {}-{}", chapters[0].name, last_chapter.name),
+        &output_dir.join("..").join("covers"),
+    );
+    let img_file = ImageReader::open(cover_img?)?.decode()?;
+    let mut img_bytes = Vec::new();
+    img_file.write_to(
+        &mut Cursor::new(&mut img_bytes),
+        image::ImageOutputFormat::Png,
+    )?;
+    combined_epub.add_cover_image(
+        output_dir.join(format!("{}({})-{}({}).png", chapters[0].id, chapters[0].name, last_chapter.id, last_chapter.name)),
+        img_bytes.as_slice(),
+        "image/png",
+    )?;
+    combined_epub.inline_toc();
+
+    for chapter in chapters {
+        let mut raw_data = db::get_chapter_data(db_conn, chapter.id)?;
+        if strip_colour {
+            raw_data = strip_chapter_colour(&raw_data);
+        }
+        combined_epub.add_content(
+            EpubContent::new(
+                format!("{}({}).xhtml", chapter.id, chapter.name),
+                raw_data.as_bytes(),
+            )
+            .title(&chapter.name),
+        )?;
+        generate_chapter(db_conn, chapter, &output_dir, strip_colour)?;
+        db::update_generated_chapter(db_conn, chapter.id, false)?;
+    }
+
+    combined_epub.generate(&mut combined_output)?;
+
+    let mut file = std::fs::File::create(
+        output_dir
+            .join("combined")
+            .join(format!("{}({})-{}({}).epub", chapters[0].id, chapters[0].name, last_chapter.id, last_chapter.name)),
+    )?;
+    file.write(&combined_output)?;
     Ok(())
 }
 
@@ -108,7 +204,7 @@ fn generate_volume(
         }
         epub.add_content(
             EpubContent::new(
-                format!("{}-{}.xhtml", chapter.id, chapter.name),
+                format!("{}({}).xhtml", chapter.id, chapter.name),
                 raw_data.as_bytes(),
             )
             .title(&chapter.name),
@@ -130,7 +226,12 @@ pub fn generate_epubs(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let volumes = db::get_volumes_to_regenerate(db_conn)?;
 
-    info!("Generating epubs for {} volumes", volumes.len());
+    if volumes.len() == 0 {
+        info!("No volumes to generate");
+    }
+    else {
+        info!("Generating epubs for {} volumes", volumes.len());
+    }
 
     for volume in volumes {
         info!("Generating epub for {}", volume.name);
@@ -153,6 +254,10 @@ pub fn generate_epubs(
     }
 
     let chapters = db::get_chapters_to_regenerate(db_conn)?;
+    if chapters.len() == 0 {
+        info!("No chapters to generate");
+        return Ok(());
+    }
     info!("Generating epubs for {} chapters", chapters.len());
     generate_chapters(db_conn, &chapters, &build_dir.join("chapters"), true)?;
     generate_chapters(
@@ -161,7 +266,5 @@ pub fn generate_epubs(
         &build_dir.join("chapters_stripped_colour"),
         false,
     )?;
-    // TODO do it
-
     Ok(())
 }

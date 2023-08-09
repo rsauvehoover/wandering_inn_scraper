@@ -106,7 +106,7 @@ pub fn add_chapter_data(db_conn: &Connection, chapter_id: usize, data: &String) 
     )?;
     db_conn
         .prepare("UPDATE volumes SET regenerate_epub = ?2 WHERE id = ?2")?
-        .execute([!regenerate as usize, chapter_id])?;
+        .execute([!regenerate as usize, volume_id])?;
     Ok(())
 }
 
@@ -193,6 +193,13 @@ pub fn get_volumes_to_regenerate(db_conn: &Connection) -> Result<Vec<Volume>> {
 pub fn update_generated_volume(db_conn: &Connection, id: usize, regenerate: bool) -> Result<()> {
     db_conn
         .prepare("UPDATE volumes SET regenerate_epub = ?1 WHERE id = ?2")?
+        .execute([regenerate as usize, id])?;
+    Ok(())
+}
+
+pub fn update_generated_chapter(db_conn: &Connection, id: usize, regenerate: bool) -> Result<()> {
+    db_conn
+        .prepare("UPDATE chapters SET regenerate_epub = ?1 WHERE id = ?2")?
         .execute([regenerate as usize, id])?;
     Ok(())
 }
