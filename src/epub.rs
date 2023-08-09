@@ -80,8 +80,11 @@ fn generate_chapter(
         raw_data = strip_chapter_colour(&raw_data);
     }
     epub.add_content(
-        EpubContent::new(format!("{}({}).xhtml", &chapter.id, &chapter.name), raw_data.as_bytes())
-            .title(&chapter.name),
+        EpubContent::new(
+            format!("{}({}).xhtml", &chapter.id, &chapter.name),
+            raw_data.as_bytes(),
+        )
+        .title(&chapter.name),
     )?;
 
     epub.generate(&mut output)?;
@@ -133,7 +136,10 @@ fn generate_chapters(
         image::ImageOutputFormat::Png,
     )?;
     combined_epub.add_cover_image(
-        output_dir.join(format!("{}({})-{}({}).png", chapters[0].id, chapters[0].name, last_chapter.id, last_chapter.name)),
+        output_dir.join(format!(
+            "{}({})-{}({}).png",
+            chapters[0].id, chapters[0].name, last_chapter.id, last_chapter.name
+        )),
         img_bytes.as_slice(),
         "image/png",
     )?;
@@ -157,11 +163,10 @@ fn generate_chapters(
 
     combined_epub.generate(&mut combined_output)?;
 
-    let mut file = std::fs::File::create(
-        output_dir
-            .join("combined")
-            .join(format!("{}({})-{}({}).epub", chapters[0].id, chapters[0].name, last_chapter.id, last_chapter.name)),
-    )?;
+    let mut file = std::fs::File::create(output_dir.join("combined").join(format!(
+        "{}({})-{}({}).epub",
+        chapters[0].id, chapters[0].name, last_chapter.id, last_chapter.name
+    )))?;
     file.write(&combined_output)?;
     Ok(())
 }
@@ -228,8 +233,7 @@ pub fn generate_epubs(
 
     if volumes.len() == 0 {
         info!("No volumes to generate");
-    }
-    else {
+    } else {
         info!("Generating epubs for {} volumes", volumes.len());
     }
 

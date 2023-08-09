@@ -94,8 +94,7 @@ pub async fn download_all_chapters(
 
     if chapters.len() == 0 {
         info!("No chapters to download");
-    }
-    else {
+    } else {
         info!("Downloading {} missing chapters", chapters.len());
     }
     let mut count = 0;
