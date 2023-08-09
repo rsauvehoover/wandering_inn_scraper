@@ -55,7 +55,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            toc_url: "https://www.wuxiaworld.com/novel/overgeared/og-chapter-1".to_string(),
+            toc_url: "https://wanderinginn.com/table-of-contents/".to_string(),
             request_delay: 1000,
             mail: MailConfig::default(),
         }

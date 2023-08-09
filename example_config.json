@@ -1,11 +1,16 @@
 {
+    // optional, defaults to https://wanderinginn.com/table-of-contents/
     "TocUrl" : "https://wanderinginn.com/table-of-contents/",
+    // optional, defaults to 1000
     "RequestDelay": 1000,
+    // none of these are required if local generation is all you want
     "Mail": {
         "Name": "Email to send from",
         "Address": "ThisIsAnEmailAddress@gmail.com",
         "Password": "Password for the email address (app password if you're using gmail)",
+        // defaults to smtp.gmail.com
         "SmtpHostname": "smtp.gmail.com",
+        // defaults to 587
         "SmtpPort": 587,
         // Can be left empty if you just want to get the epubs locally
         "Destinations": [
