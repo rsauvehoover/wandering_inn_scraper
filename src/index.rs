@@ -1,9 +1,9 @@
 use hyper::{Client, Uri};
 use hyper_tls::HttpsConnector;
 use log::info;
-use rusqlite::{Connection, Result};
-use soup::prelude::*;
 use regex::Regex;
+use rusqlite::{Connection, OptionalExtension, Result};
+use soup::prelude::*;
 
 use std::{thread, time::Duration};
 
@@ -14,6 +14,7 @@ pub fn db_open() -> Result<Connection> {
         "CREATE TABLE IF NOT EXISTS volumes(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
+        regenerate_epub INTEGER DEFAULT 0 CHECK(regenerate_epub IN (0, 1)),
         UNIQUE(name)
     )",
         (),
@@ -26,6 +27,7 @@ pub fn db_open() -> Result<Connection> {
         uri TEXT NOT NULL,
         volumeid INTEGER,
         data_id INTEGER,
+        regenerate_epub INTEGER DEFAULT 0 CHECK(regenerate_epub IN (0, 1)),
         FOREIGN KEY(data_id) REFERENCES raw_data(id),
         FOREIGN KEY(volumeid) REFERENCES volume(id),
         UNIQUE(name, uri, volumeid)
@@ -66,6 +68,18 @@ fn db_add_chapter(db_conn: &Connection, name: String, uri: String, volume: usize
 }
 
 fn add_chapter_data(db_conn: &Connection, chapter_id: usize, data: &String) -> Result<()> {
+    let existing_data = match db_conn
+        .query_row(
+            "SELECT data FROM raw_data WHERE chapter_id = ?1",
+            [chapter_id],
+            |row| row.get(0),
+        )
+        .optional()?
+    {
+        Some(data) => data,
+        None => "".to_string(),
+    };
+
     db_conn
         .prepare("INSERT OR REPLACE INTO raw_data(data, chapter_id) values(?1, ?2)")?
         .execute((data, chapter_id))?;
@@ -74,8 +88,8 @@ fn add_chapter_data(db_conn: &Connection, chapter_id: usize, data: &String) -> R
             row.get(0)
         })?;
     db_conn
-        .prepare("UPDATE chapters SET data_id = ?1 WHERE id = ?2")?
-        .execute([data_id, chapter_id])?;
+        .prepare("UPDATE chapters SET data_id = ?1, regenerate_epub = ?2 WHERE id = ?3")?
+        .execute([data_id, !existing_data.eq(data) as usize, chapter_id])?;
     Ok(())
 }
 
@@ -151,7 +165,13 @@ async fn get_chapter(
     add_chapter_data(
         db_conn,
         chapter_id,
-        &format!("{}\n{}\n{}\n{}\n", header, title, re.replace_all(&body, ""), footer),
+        &format!(
+            "{}\n{}\n{}\n{}\n",
+            header,
+            title,
+            re.replace_all(&body, ""),
+            footer
+        ),
     )?;
     Ok(())
 }
@@ -173,6 +193,13 @@ pub async fn get_all_chapters(
         get_chapter(db_conn, chapter?).await?;
         count += 1;
     }
-    info!("{}", if count > 0 { format!("Done downloading {count} chapters") } else { format!("No chapters to download") });
+    info!(
+        "{}",
+        if count > 0 {
+            format!("Done downloading {count} chapters")
+        } else {
+            format!("No chapters to download")
+        }
+    );
     Ok(())
 }
