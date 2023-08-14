@@ -30,19 +30,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: version
-        run: |
-          rev=$(git rev-list --tags --max-count=1)
-          version=$(git describe --tags $rev)
-          echo "VERSION=$version" >> $GITHUB_ENV
+      - name: 'Get Previous tag'
+        id: previoustag
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+        with:
+          fallback: 0.1.0
       - name: Create release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.VERSION }}
-          release_name: Release ${{ env.VERSION }}
+          tag_name: ${{ steps.previoustag.outputs.tag }}
+          release_name: Release ${{ steps.previoustag.outputs.tag }}
           draft: true
           prerelease: true 
 
