@@ -19,17 +19,17 @@ async fn main() {
         }
     };
 
-    match scraper::update_index(&conn, config.toc_url).await {
+    match scraper::update_index(&conn, &config.toc_url).await {
         Ok(_) => (),
         Err(e) => panic!("Error updating index: {}", e),
     }
 
-    match scraper::download_all_chapters(&conn, config.request_delay).await {
+    match scraper::download_all_chapters(&conn, &config.request_delay).await {
         Ok(_) => (),
         Err(e) => panic!("Error getting chapters: {}", e),
     }
 
-    match epub::generate_epubs(&conn, Path::new("build/")) {
+    match epub::generate_epubs(&conn, Path::new("build/"), &config) {
         Ok(_) => (),
         Err(e) => panic!("Error generating epubs: {}", e),
     }

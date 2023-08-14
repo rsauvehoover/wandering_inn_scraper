@@ -125,7 +125,10 @@ where
                 name: row.get(1)?,
                 uri: row.get(2)?,
                 volumeid: row.get(3)?,
-                data_id: match row.get(4) { Ok(id) => id, Err(_) => 0 },
+                data_id: match row.get(4) {
+                    Ok(id) => id,
+                    Err(_) => 0,
+                },
             })
         })?
         .collect();

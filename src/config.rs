@@ -30,6 +30,8 @@ pub struct UserConfig {
     pub email: String,
     pub strip_colour: bool,
     pub send_full_volumes: bool,
+    pub send_combined_chapters: bool,
+    pub send_individual_chapters: bool,
 }
 impl Default for UserConfig {
     fn default() -> Self {
@@ -37,7 +39,27 @@ impl Default for UserConfig {
             name: String::default(),
             email: String::default(),
             strip_colour: false,
-            send_full_volumes: false,
+            send_full_volumes: true,
+            send_individual_chapters: false,
+            send_combined_chapters: false,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase", default)]
+pub struct EpubGenConfig {
+    pub volumes: bool,
+    pub chapters: bool,
+    pub strip_colour: bool,
+}
+
+impl Default for EpubGenConfig {
+    fn default() -> Self {
+        EpubGenConfig {
+            volumes: true,
+            chapters: true,
+            strip_colour: false,
         }
     }
 }
@@ -46,6 +68,7 @@ impl Default for UserConfig {
 #[serde(rename_all = "PascalCase", default)]
 pub struct Config {
     pub mail: MailConfig,
+    pub epub_gen: EpubGenConfig,
     pub toc_url: String,
     // number of seconds to wait before allowing another request to be made
     // avoids being ip banned
@@ -57,6 +80,7 @@ impl Default for Config {
             toc_url: "https://wanderinginn.com/table-of-contents/".to_string(),
             request_delay: 1000,
             mail: MailConfig::default(),
+            epub_gen: EpubGenConfig::default(),
         }
     }
 }
@@ -69,7 +93,7 @@ pub fn load_config() -> Config {
     }
     match std::fs::read_to_string("config.json") {
         Ok(str) => match serde_json::from_str::<Config>(&str) {
-            Ok(config) => {
+            Ok(mut config) => {
                 println!("Loaded config");
                 println!("Delay is {}ms", config.request_delay);
                 println!(
@@ -79,6 +103,19 @@ pub fn load_config() -> Config {
                 for dest in &config.mail.destinations {
                     println!("Sending to <{}> at <{}>", dest.name, dest.email);
                 }
+
+                for dest in &config.mail.destinations {
+                    if dest.strip_colour {
+                        config.epub_gen.strip_colour = true;
+                    }
+                    if dest.send_full_volumes {
+                        config.epub_gen.volumes = true;
+                    }
+                    if dest.send_combined_chapters || dest.send_individual_chapters {
+                        config.epub_gen.chapters = true;
+                    }
+                }
+
                 config
             }
             Err(e) => {

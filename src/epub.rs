@@ -12,6 +12,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::config;
 use crate::db;
 
 fn generate_cover(
@@ -84,13 +85,11 @@ fn generate_chapter(
         image::ImageOutputFormat::Png,
     )?;
     epub.add_cover_image(
-        output_dir.join(format!(
-            "{}({}).png",
-            chapter.id, chapter.name 
-        )),
+        output_dir.join(format!("{}({}).png", chapter.id, chapter.name)),
         img_bytes.as_slice(),
         "image/png",
-    )?;   epub.stylesheet(load_stylesheet().as_bytes())?;
+    )?;
+    epub.stylesheet(load_stylesheet().as_bytes())?;
 
     let mut raw_data = db::get_chapter_data(db_conn, chapter.id)?;
     if strip_colour {
@@ -245,47 +244,60 @@ fn generate_volume(
 pub fn generate_epubs(
     db_conn: &Connection,
     build_dir: &Path,
+    config: &config::Config,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let volumes = db::get_volumes_to_regenerate(db_conn)?;
+    if config.epub_gen.volumes {
+        let volumes = db::get_volumes_to_regenerate(db_conn)?;
 
-    if volumes.len() == 0 {
-        println!("No volumes to generate");
+        if volumes.len() == 0 {
+            println!("No volumes to generate");
+        } else {
+            println!("Generating epubs for {} volumes", volumes.len());
+        }
+
+        for volume in volumes {
+            println!("Generating epub for {}", volume.name);
+            let chapters = db::get_chapters_by_volume(db_conn, volume.id)?;
+            if config.epub_gen.strip_colour {
+                generate_volume(
+                    db_conn,
+                    &volume,
+                    &chapters,
+                    &build_dir.join("volumes"),
+                    false,
+                )?;
+            }
+            generate_volume(
+                db_conn,
+                &volume,
+                &chapters,
+                &build_dir.join("volumes_stripped_colour"),
+                true,
+            )?;
+            db::update_generated_volume(db_conn, volume.id, false)?;
+        }
     } else {
-        println!("Generating epubs for {} volumes", volumes.len());
+        println!("Skipping volume generation");
     }
 
-    for volume in volumes {
-        println!("Generating epub for {}", volume.name);
-        let chapters = db::get_chapters_by_volume(db_conn, volume.id)?;
-        generate_volume(
+    if config.epub_gen.chapters {
+        let chapters = db::get_chapters_to_regenerate(db_conn)?;
+        if chapters.len() == 0 {
+            println!("No chapters to generate");
+            return Ok(());
+        }
+        println!("Generating epubs for {} chapters", chapters.len());
+        if config.epub_gen.strip_colour {
+            generate_chapters(db_conn, &chapters, &build_dir.join("chapters"), true)?;
+        }
+        generate_chapters(
             db_conn,
-            &volume,
             &chapters,
-            &build_dir.join("volumes"),
+            &build_dir.join("chapters_stripped_colour"),
             false,
         )?;
-        generate_volume(
-            db_conn,
-            &volume,
-            &chapters,
-            &build_dir.join("volumes_stripped_colour"),
-            true,
-        )?;
-        db::update_generated_volume(db_conn, volume.id, false)?;
+    } else {
+        println!("Skipping chapter generation");
     }
-
-    let chapters = db::get_chapters_to_regenerate(db_conn)?;
-    if chapters.len() == 0 {
-        println!("No chapters to generate");
-        return Ok(());
-    }
-    println!("Generating epubs for {} chapters", chapters.len());
-    generate_chapters(db_conn, &chapters, &build_dir.join("chapters"), true)?;
-    generate_chapters(
-        db_conn,
-        &chapters,
-        &build_dir.join("chapters_stripped_colour"),
-        false,
-    )?;
     Ok(())
 }

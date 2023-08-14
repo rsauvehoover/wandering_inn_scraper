@@ -3,6 +3,15 @@
     "TocUrl" : "https://wanderinginn.com/table-of-contents/",
     // optional, defaults to 1000
     "RequestDelay": 1000,
+    // optional, defaults to generating all options
+    "EpubGen": {
+        // generate one epub per volume
+        "Volumes": true,
+        // generate one epub per chapter, as well as one epub containing all newly generated chapters, i.e. 9.50-9.60.epub
+        "Chapters": true,
+        // also generate an an epub with colours stripped - will be set to true if any destination has StripColour set to true
+        "StripColour": true
+    },
     // none of these are required if local generation is all you want
     "Mail": {
         "Name": "Email to send from",
@@ -20,12 +29,12 @@
                 // If true, will strip colour from the epub, recommended if you use a kindle or other black and white reader
                 // Stripped colours will look like <LIGHTSKYBLUE|Some light blue text|LIGHTSKYBLUE>
                 "StripColour": true,
-                // If true, will send all updated chapters as a single epub per updated volume 
-                // otherwise, individual epubs will be sent for each chapter
-                // i.e. if chapters were just generated 9.50-9.60 will be sent as 9.50.epub, 9.51.epub, etc.
-                // NOTE: if you set this to true, you will probably get duplicate epubs in your 
-                //      kindle library if you don't delete the old ones
-                "SendFullVolumes": false
+                // If true will send all updated chapters as a single epub per updated volume 
+                "SendFullVolumes": true,
+                // If true will send all updated chapters as a single epub
+                "SendCombinedChapters": true,
+                // If true will send an epub for each updated chapter
+                "SendIndividualChapters": true
             }
         ]
     }

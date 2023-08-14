@@ -19,11 +19,11 @@ async fn get_html(uri: String) -> Result<Soup, Box<dyn std::error::Error>> {
 
 pub async fn update_index(
     db_conn: &Connection,
-    toc_url: String,
+    toc_url: &String,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("(Re)Building index");
 
-    let soup = get_html(toc_url).await?;
+    let soup = get_html(toc_url.to_string()).await?;
 
     for volume in soup.class("volume-wrapper").find_all() {
         let volume_title = volume.tag("h2").find().unwrap().text();
@@ -87,7 +87,7 @@ async fn download_chapter(
 
 pub async fn download_all_chapters(
     db_conn: &Connection,
-    delay: u64,
+    delay: &u64,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let chapters = db::get_empty_chapters(db_conn)?;
 
@@ -101,7 +101,7 @@ pub async fn download_all_chapters(
         if count % 10 == 0 && count != 0 {
             println!("Downloaded {} chapters", count);
         }
-        thread::sleep(Duration::from_millis(delay));
+        thread::sleep(Duration::from_millis(*delay));
         download_chapter(db_conn, chapter).await?;
         count += 1;
     }
