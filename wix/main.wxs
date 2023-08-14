@@ -104,26 +104,26 @@
                             KeyPath='yes'/>
                     </Component>
 
-                    <Directory Id='Bin' Name='bin'>
-                        <Component Id='Path' Guid='5579C2AA-EE83-4ACA-9E90-EBCEA9F067EF' KeyPath='yes'>
-                            <Environment
-                                Id='PATH'
-                                Name='PATH'
-                                Value='[Bin]'
-                                Permanent='no'
-                                Part='last'
-                                Action='set'
-                                System='yes'/>
+                    <Directory Id='Src' Name='src'>
+                      <Directory Id="Assets" Name="assets">
+                        <Component Id="stylesheet" Guid="*">
+                            <File Id="stylesheet" Name="style.css" DiskId="1" Source="src\assets\style.css" KeyPath="yes" />
                         </Component>
-                        <Component Id='binary0' Guid='*'>
-                            <File
-                                Id='exe0'
-                                Name='wandering_inn_scraper.exe'
-                                DiskId='1'
-                                Source='$(var.CargoTargetBinDir)\wandering_inn_scraper.exe'
-                                KeyPath='yes'/>
+
+                        <Component Id="cover" Guid="*">
+                            <File Id="cover" Name="cover.png" DiskId="1" Source="src\assets\cover.png" KeyPath="yes" />
                         </Component>
+                      </Directory>
                     </Directory>
+
+                    <Component Id='binary0' Guid='*'>
+                        <File
+                            Id='exe0'
+                            Name='wandering_inn_scraper.exe'
+                            DiskId='1'
+                            Source='$(var.CargoTargetBinDir)\wandering_inn_scraper.exe'
+                            KeyPath='yes'/>
+                    </Component>
                 </Directory>
             </Directory>
         </Directory>
@@ -145,14 +145,9 @@
             
             <ComponentRef Id='binary0'/>
 
-            <Feature
-                Id='Environment'
-                Title='PATH Environment Variable'
-                Description='Add the install location of the [ProductName] executable to the PATH system environment variable. This allows the [ProductName] executable to be called from any location.'
-                Level='1'
-                Absent='allow'>
-                <ComponentRef Id='Path'/>
-            </Feature>
+            <ComponentRef Id='stylesheet'/>
+
+            <ComponentRef Id='cover'/>
         </Feature>
 
         <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>

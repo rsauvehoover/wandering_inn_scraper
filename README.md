@@ -41,7 +41,7 @@ cargo bundle --release
 ```
 
 ### Windows
-NOTE: `cargo wix` doesn't show any output by default, run with `-v` flag to see verbose output.
+NOTE: `cargo wix` doesn't show any output by default, run with `-v` and `--nocapture` flags to see verbose output.
 ```bash
 cargo wix
 ```
