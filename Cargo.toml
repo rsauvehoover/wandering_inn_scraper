@@ -11,6 +11,7 @@ license = "MIT"
 [package.metadata.bundle]
 identifier = "rsauvehoover/wandering-inn-scraper"
 resources = ["src/assets", "src/font"]
+linux_use_terminal = true
 
 [dependencies]
 color-name = "1.1.0"

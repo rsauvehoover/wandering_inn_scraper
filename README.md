@@ -37,7 +37,7 @@ Binaries will be found `target/release/bundle` and `target/wix` directories
 
 ### Linux/MacOS
 ```bash
-cargo build --release
+cargo bundle --release
 ```
 
 ### Windows
