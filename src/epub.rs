@@ -72,7 +72,25 @@ fn generate_chapter(
     epub.metadata("lang", "en")?;
     epub.metadata("title", &chapter.name)?;
     epub.metadata("generator", "rsauvehoover/wandering-inn-scraper")?;
-    epub.stylesheet(load_stylesheet().as_bytes())?;
+
+    let cover_img = generate_cover(
+        &format!("Chapter {}", chapter.name),
+        &output_dir.join("..").join("covers"),
+    );
+    let img_file = ImageReader::open(cover_img?)?.decode()?;
+    let mut img_bytes = Vec::new();
+    img_file.write_to(
+        &mut Cursor::new(&mut img_bytes),
+        image::ImageOutputFormat::Png,
+    )?;
+    epub.add_cover_image(
+        output_dir.join(format!(
+            "{}({}).png",
+            chapter.id, chapter.name 
+        )),
+        img_bytes.as_slice(),
+        "image/png",
+    )?;   epub.stylesheet(load_stylesheet().as_bytes())?;
 
     let mut raw_data = db::get_chapter_data(db_conn, chapter.id)?;
     if strip_colour {
