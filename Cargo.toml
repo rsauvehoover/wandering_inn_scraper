@@ -13,6 +13,9 @@ identifier = "rsauvehoover/wandering-inn-scraper"
 resources = ["src/assets", "src/font"]
 linux_use_terminal = true
 
+[profile.release]
+opt-level = 2
+
 [dependencies]
 color-name = "1.1.0"
 epub-builder = "0.7.1"
