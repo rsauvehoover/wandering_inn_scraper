@@ -50,12 +50,18 @@ fn load_stylesheet() -> String {
 }
 
 fn strip_chapter_colour(chapter_data: &str) -> String {
-    let re = Regex::new(r#"<span style="color:(#......)">(.*?)</span>"#).unwrap();
-    re.replace(chapter_data, |captures: &regex::Captures| {
+    let re = Regex::new(r#"<span style="color:\s*(#......).*?">(.*?)</span>"#).unwrap();
+    re.replace_all(chapter_data, |captures: &regex::Captures| {
         let colour_arr = hex::decode(&captures[1][1..]).unwrap();
         let name = Color::similar([colour_arr[0], colour_arr[1], colour_arr[2]]);
         format!("{{{a}}}{b}{{{a}}}", a = name, b = &captures[2])
     })
+    .to_string()
+}
+
+fn replace_mrsha_write(chapter_data: &str) -> String {
+    let re = Regex::new(r#"<span.*?mrsha-write.*?>(.*?)</span>"#).unwrap();
+    re.replace_all(chapter_data, |captures: &regex::Captures| format!("<em>{}</em>", &captures[1]))
     .to_string()
 }
 
@@ -91,7 +97,7 @@ fn generate_chapter(
     )?;
     epub.stylesheet(load_stylesheet().as_bytes())?;
 
-    let mut raw_data = db::get_chapter_data(db_conn, chapter.id)?;
+    let mut raw_data = replace_mrsha_write(&db::get_chapter_data(db_conn, chapter.id)?);
     if strip_colour {
         raw_data = strip_chapter_colour(&raw_data);
     }
@@ -162,7 +168,7 @@ fn generate_chapters(
     combined_epub.inline_toc();
 
     for chapter in chapters {
-        let mut raw_data = db::get_chapter_data(db_conn, chapter.id)?;
+        let mut raw_data = replace_mrsha_write(&db::get_chapter_data(db_conn, chapter.id)?);
         if strip_colour {
             raw_data = strip_chapter_colour(&raw_data);
         }
@@ -219,7 +225,7 @@ fn generate_volume(
     epub.inline_toc();
 
     for chapter in chapters {
-        let mut raw_data = db::get_chapter_data(db_conn, chapter.id)?;
+        let mut raw_data = replace_mrsha_write(&db::get_chapter_data(db_conn, chapter.id)?);
         if strip_colour {
             raw_data = strip_chapter_colour(&raw_data);
         }
