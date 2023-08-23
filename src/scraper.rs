@@ -8,13 +8,13 @@ use crate::db;
 
 use std::{thread, time::Duration};
 
-async fn get_html(uri: String) -> Result<Soup, Box<dyn std::error::Error>> {
+async fn get_html(uri: String) -> Result<String, Box<dyn std::error::Error>> {
     let https = HttpsConnector::new();
     let client = Client::builder().build::<_, hyper::Body>(https);
     let res = client.get(uri.parse::<Uri>().unwrap()).await?;
     let bytes = hyper::body::to_bytes(res).await?;
     let body = String::from_utf8(bytes.to_vec()).unwrap();
-    Ok(Soup::new(&body))
+    Ok(body)
 }
 
 pub async fn update_index(
@@ -23,7 +23,7 @@ pub async fn update_index(
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("(Re)Building index");
 
-    let soup = get_html(toc_url.to_string()).await?;
+    let soup = Soup::new(&get_html(toc_url.to_string()).await?);
 
     for volume in soup.class("volume-wrapper").find_all() {
         let volume_title = volume.tag("h2").find().unwrap().text();
@@ -48,7 +48,12 @@ async fn download_chapter(
     db_conn: &Connection,
     chapter: db::Chapter,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let soup = get_html(chapter.uri).await?;
+    let mut html_string = get_html(chapter.uri).await?;
+
+    let escape_re = Regex::new(r"(?:&)((?:lt|gt|nbsp);)").unwrap();
+    html_string = escape_re.replace_all(&html_string, |captures: &regex::Captures| format!("&amp;{}", &captures[1])).to_string();
+
+    let soup = Soup::new(&html_string);
     let html = soup.class("entry-content").find().unwrap();
 
     let header = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.1//EN\" \"http://www.w3.org/TR/xhtml11    /DTD/xhtml11.dtd\">

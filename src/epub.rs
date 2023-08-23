@@ -54,7 +54,7 @@ fn strip_chapter_colour(chapter_data: &str) -> String {
     re.replace_all(chapter_data, |captures: &regex::Captures| {
         let colour_arr = hex::decode(&captures[1][1..]).unwrap();
         let name = Color::similar([colour_arr[0], colour_arr[1], colour_arr[2]]);
-        format!("{{{a}}}{b}{{{a}}}", a = name, b = &captures[2])
+        format!("<span>&lt;{a}|{b}|{a}&gt;</span>", a = name, b = &captures[2])
     })
     .to_string()
 }
