@@ -45,3 +45,9 @@ NOTE: `cargo wix` doesn't show any output by default, run with `-v` and `--nocap
 ```bash
 cargo wix
 ```
+
+## Versioning
+
+```bash
+cargo bump {major|minor|patch} --git-tag
+```
