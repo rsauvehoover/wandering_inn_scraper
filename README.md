@@ -7,7 +7,7 @@ This is written to generate most of the variations of epubs that would be useful
 
 ## Usage
 
-1. Build or download the latest release
+1. Build the latest version, or download [the latest release](https://github.com/rsauvehoover/wandering_inn_scraper/releases)
 2. add a `config.json` to the same directory as the binary or the root of the project if building from source.
 See [example_config.json](example_config.json) for an example of config options.
 3. Run the program, outputs will be in the `build` directory.
