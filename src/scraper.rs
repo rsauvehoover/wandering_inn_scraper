@@ -74,7 +74,7 @@ async fn download_chapter(
     );
     let re = Regex::new(r"<a.*?</a>").unwrap();
     let body = html.display();
-    let footer = "</body>";
+    let footer = "</body></html>";
 
     db::add_chapter_data(
         db_conn,
