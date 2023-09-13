@@ -72,21 +72,30 @@ async fn download_chapter(
         "<h1>{}</h1>",
         soup.class("entry-title").find().unwrap().text()
     );
+
+    let patron_re = Regex::new(r"(?i)Patron Early Access").unwrap();
+    let is_patreon_chapter = patron_re.is_match(&title);
+
     let re = Regex::new(r"<a.*?</a>").unwrap();
     let body = html.display();
     let footer = "</body></html>";
 
-    db::add_chapter_data(
-        db_conn,
-        chapter.id,
-        &format!(
-            "{}\n{}\n{}\n{}\n",
-            header,
-            title,
-            re.replace_all(&body, ""),
-            footer
-        ),
-    )?;
+    if is_patreon_chapter {
+        db::remove_chapter(db_conn, chapter.id)?;
+    }
+    else {
+        db::add_chapter_data(
+            db_conn,
+            chapter.id,
+            &format!(
+                "{}\n{}\n{}\n{}\n",
+                header,
+                title,
+                re.replace_all(&body, ""),
+                footer
+            ),
+        )?;
+    }
     Ok(())
 }
 

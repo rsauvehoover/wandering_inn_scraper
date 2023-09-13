@@ -76,6 +76,13 @@ pub fn add_chapter(db_conn: &Connection, name: String, uri: String, volume: usiz
     Ok(())
 }
 
+pub fn remove_chapter(db_conn: &Connection, chapter_id: usize) -> Result<()> {
+    db_conn
+        .prepare("DELETE FROM chapters WHERE id = ?1")?
+        .execute([chapter_id])?;
+    Ok(())
+}
+
 pub fn add_chapter_data(db_conn: &Connection, chapter_id: usize, data: &String) -> Result<()> {
     let existing_data = match db_conn
         .query_row(

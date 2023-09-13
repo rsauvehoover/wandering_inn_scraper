@@ -294,13 +294,13 @@ pub fn generate_epubs(
         }
         println!("Generating epubs for {} chapters", chapters.len());
         if config.epub_gen.strip_colour {
-            generate_chapters(db_conn, &chapters, &build_dir.join("chapters"), true)?;
+            generate_chapters(db_conn, &chapters, &build_dir.join("chapters"), false)?;
         }
         generate_chapters(
             db_conn,
             &chapters,
             &build_dir.join("chapters_stripped_colour"),
-            false,
+            true,
         )?;
     } else {
         println!("Skipping chapter generation");
