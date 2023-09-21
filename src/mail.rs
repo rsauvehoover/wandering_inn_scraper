@@ -14,7 +14,10 @@ pub async fn send_book(bytes: Vec<u8>) {
 
     let res = SmtpClientBuilder::new("smtp.gmail.com", 587)
         .implicit_tls(false)
-        .credentials(("FredericEpubService@gmail.com", "this is not a real password"))
+        .credentials((
+            "FredericEpubService@gmail.com",
+            "this is not a real password",
+        ))
         .connect()
         .await
         .unwrap()
