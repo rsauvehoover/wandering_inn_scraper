@@ -54,14 +54,20 @@ fn strip_chapter_colour(chapter_data: &str) -> String {
     re.replace_all(chapter_data, |captures: &regex::Captures| {
         let colour_arr = hex::decode(&captures[1][1..]).unwrap();
         let name = Color::similar([colour_arr[0], colour_arr[1], colour_arr[2]]);
-        format!("<span>&lt;{a}|{b}|{a}&gt;</span>", a = name, b = &captures[2])
+        format!(
+            "<span>&lt;{a}|{b}|{a}&gt;</span>",
+            a = name,
+            b = &captures[2]
+        )
     })
     .to_string()
 }
 
 fn replace_mrsha_write(chapter_data: &str) -> String {
     let re = Regex::new(r#"<span.*?mrsha-write.*?>(.*?)</span>"#).unwrap();
-    re.replace_all(chapter_data, |captures: &regex::Captures| format!("<em>{}</em>", &captures[1]))
+    re.replace_all(chapter_data, |captures: &regex::Captures| {
+        format!("<em>{}</em>", &captures[1])
+    })
     .to_string()
 }
 
@@ -294,14 +300,14 @@ pub fn generate_epubs(
         }
         println!("Generating epubs for {} chapters", chapters.len());
         if config.epub_gen.strip_colour {
-            generate_chapters(db_conn, &chapters, &build_dir.join("chapters"), false)?;
+            generate_chapters(
+                db_conn,
+                &chapters,
+                &build_dir.join("chapters_stripped_colour"),
+                true,
+            )?;
         }
-        generate_chapters(
-            db_conn,
-            &chapters,
-            &build_dir.join("chapters_stripped_colour"),
-            true,
-        )?;
+        generate_chapters(db_conn, &chapters, &build_dir.join("chapters"), false)?;
     } else {
         println!("Skipping chapter generation");
     }
