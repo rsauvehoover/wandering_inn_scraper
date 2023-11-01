@@ -21,3 +21,5 @@ Cargo.lock
 
 config.json
 *.db
+
+.DS_Store
