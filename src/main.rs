@@ -1,16 +1,14 @@
 use std::path::Path;
 
-// mod mail;
 mod config;
 mod db;
 mod epub;
+mod mail;
 mod scraper;
 
 #[tokio::main]
 async fn main() {
     let config = config::load_config();
-
-    // let deststuff: Vec<(String, String)> = config.destinations.into_iter().map(|dest| (dest.name, dest.email)).collect();
 
     let conn = match db::open() {
         Ok(conn) => conn,
@@ -29,7 +27,7 @@ async fn main() {
         Err(e) => panic!("Error getting chapters: {}", e),
     }
 
-    match epub::generate_epubs(&conn, Path::new("build/"), &config) {
+    match epub::generate_epubs(&conn, Path::new("build/"), &config).await {
         Ok(_) => (),
         Err(e) => panic!("Error generating epubs: {}", e),
     }

@@ -14,6 +14,7 @@ use std::{
 
 use crate::config;
 use crate::db;
+use crate::mail::{send_epubs, Attachment};
 
 fn generate_cover(
     volume_title: &str,
@@ -76,7 +77,7 @@ fn generate_chapter(
     chapter: &db::Chapter,
     output_dir: &Path,
     strip_colour: bool,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<Attachment, Box<dyn std::error::Error>> {
     let mut output = Vec::<u8>::new();
     std::fs::create_dir_all(output_dir.join("individual"))?;
 
@@ -117,13 +118,15 @@ fn generate_chapter(
 
     epub.generate(&mut output)?;
 
-    let mut file = std::fs::File::create(
-        output_dir
-            .join("individual")
-            .join(format!("{}({}).epub", &chapter.id, &chapter.name)),
-    )?;
+    let filename = format!("{}({}).epub", &chapter.id, &chapter.name);
+
+    let mut file = std::fs::File::create(output_dir.join("individual").join(&filename))?;
     file.write_all(&output)?;
-    Ok(())
+    Ok(Attachment {
+        filename,
+        mime: String::from("application/epub+zip"),
+        bytes: output,
+    })
 }
 
 fn generate_chapters(
@@ -131,11 +134,11 @@ fn generate_chapters(
     chapters: &Vec<db::Chapter>,
     output_dir: &Path,
     strip_colour: bool,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<Vec<Attachment>, Box<dyn std::error::Error>> {
     std::fs::create_dir_all(output_dir.join("combined"))?;
 
     if chapters.len() == 0 {
-        return Ok(());
+        return Ok(Vec::<Attachment>::default());
     }
 
     let mut combined_output = Vec::<u8>::new();
@@ -173,6 +176,8 @@ fn generate_chapters(
     )?;
     combined_epub.inline_toc();
 
+    let mut attachments = Vec::<Attachment>::new();
+
     for chapter in chapters {
         let mut raw_data = replace_mrsha_write(&db::get_chapter_data(db_conn, chapter.id)?);
         if strip_colour {
@@ -185,7 +190,12 @@ fn generate_chapters(
             )
             .title(&chapter.name),
         )?;
-        generate_chapter(db_conn, chapter, &output_dir, strip_colour)?;
+        attachments.push(generate_chapter(
+            db_conn,
+            chapter,
+            &output_dir,
+            strip_colour,
+        )?);
         db::update_generated_chapter(db_conn, chapter.id, false)?;
     }
 
@@ -196,7 +206,7 @@ fn generate_chapters(
         chapters[0].id, chapters[0].name, last_chapter.id, last_chapter.name
     )))?;
     file.write(&combined_output)?;
-    Ok(())
+    Ok(attachments)
 }
 
 fn generate_volume(
@@ -205,7 +215,7 @@ fn generate_volume(
     chapters: &Vec<db::Chapter>,
     output_dir: &Path,
     strip_colour: bool,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<Attachment, Box<dyn std::error::Error>> {
     let mut output = Vec::<u8>::new();
 
     let mut epub = EpubBuilder::new(ZipLibrary::new()?)?;
@@ -247,17 +257,29 @@ fn generate_volume(
     epub.generate(&mut output)?;
 
     std::fs::create_dir_all(&output_dir)?;
+
+    let filename = format!("{}.epub", volume.name);
+
     let mut file = std::fs::File::create(output_dir.join(format!("{}.epub", volume.name)))?;
     file.write_all(&output)?;
 
-    Ok(())
+    Ok(Attachment {
+        filename,
+        mime: String::from("application/epub+zip"),
+        bytes: output,
+    })
 }
 
-pub fn generate_epubs(
+pub async fn generate_epubs(
     db_conn: &Connection,
     build_dir: &Path,
     config: &config::Config,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let mut vols = Vec::<Attachment>::new();
+    let mut vols_stripped = Vec::<Attachment>::new();
+    let mut chaps = Vec::<Attachment>::new();
+    let mut chaps_stripped = Vec::<Attachment>::new();
+
     if config.epub_gen.volumes {
         let volumes = db::get_volumes_to_regenerate(db_conn)?;
 
@@ -271,21 +293,21 @@ pub fn generate_epubs(
             println!("Generating epub for {}", volume.name);
             let chapters = db::get_chapters_by_volume(db_conn, volume.id)?;
             if config.epub_gen.strip_colour {
-                generate_volume(
+                vols_stripped.push(generate_volume(
                     db_conn,
                     &volume,
                     &chapters,
                     &build_dir.join("volumes"),
                     false,
-                )?;
+                )?);
             }
-            generate_volume(
+            vols.push(generate_volume(
                 db_conn,
                 &volume,
                 &chapters,
                 &build_dir.join("volumes_stripped_colour"),
                 true,
-            )?;
+            )?);
             db::update_generated_volume(db_conn, volume.id, false)?;
         }
     } else {
@@ -300,16 +322,19 @@ pub fn generate_epubs(
         }
         println!("Generating epubs for {} chapters", chapters.len());
         if config.epub_gen.strip_colour {
-            generate_chapters(
+            chaps_stripped = generate_chapters(
                 db_conn,
                 &chapters,
                 &build_dir.join("chapters_stripped_colour"),
                 true,
             )?;
         }
-        generate_chapters(db_conn, &chapters, &build_dir.join("chapters"), false)?;
+        chaps = generate_chapters(db_conn, &chapters, &build_dir.join("chapters"), false)?;
     } else {
         println!("Skipping chapter generation");
     }
+
+    send_epubs(&config.mail, &vols, &vols_stripped, &chaps, &chaps_stripped).await;
+
     Ok(())
 }
