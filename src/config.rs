@@ -16,21 +16,20 @@ impl Default for MailConfig {
             name: String::default(),
             address: String::default(),
             password: String::default(),
-            smtp_hostname: "smtp.gmail.com".to_string(),
+            smtp_hostname: String::from("smtp.gmail.com"),
             smtp_port: 587,
             destinations: Vec::<UserConfig>::default(),
         }
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "PascalCase", default)]
 pub struct UserConfig {
     pub name: String,
     pub email: String,
     pub strip_colour: bool,
     pub send_full_volumes: bool,
-    pub send_combined_chapters: bool,
     pub send_individual_chapters: bool,
 }
 impl Default for UserConfig {
@@ -41,7 +40,6 @@ impl Default for UserConfig {
             strip_colour: false,
             send_full_volumes: true,
             send_individual_chapters: false,
-            send_combined_chapters: false,
         }
     }
 }
@@ -77,7 +75,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            toc_url: "https://wanderinginn.com/table-of-contents/".to_string(),
+            toc_url: String::from("https://wanderinginn.com/table-of-contents/"),
             request_delay: 1000,
             mail: MailConfig::default(),
             epub_gen: EpubGenConfig::default(),
@@ -111,7 +109,7 @@ pub fn load_config() -> Config {
                     if dest.send_full_volumes {
                         config.epub_gen.volumes = true;
                     }
-                    if dest.send_combined_chapters || dest.send_individual_chapters {
+                    if dest.send_individual_chapters {
                         config.epub_gen.chapters = true;
                     }
                 }

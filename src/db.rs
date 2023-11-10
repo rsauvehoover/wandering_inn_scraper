@@ -93,7 +93,7 @@ pub fn add_chapter_data(db_conn: &Connection, chapter_id: usize, data: &String) 
         .optional()?
     {
         Some(data) => data,
-        None => "".to_string(),
+        None => String::from(""),
     };
 
     db_conn
