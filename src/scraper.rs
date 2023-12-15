@@ -51,7 +51,11 @@ async fn download_chapter(
     let mut html_string = get_html(chapter.uri).await?;
 
     let escape_re = Regex::new(r"(?:&)((?:lt|gt|nbsp);)").unwrap();
-    html_string = escape_re.replace_all(&html_string, |captures: &regex::Captures| format!("&amp;{}", &captures[1])).to_string();
+    html_string = escape_re
+        .replace_all(&html_string, |captures: &regex::Captures| {
+            format!("&amp;{}", &captures[1])
+        })
+        .to_string();
 
     let soup = Soup::new(&html_string);
     let html = soup.class("entry-content").find().unwrap();
@@ -82,8 +86,7 @@ async fn download_chapter(
 
     if is_patreon_chapter {
         db::remove_chapter(db_conn, chapter.id)?;
-    }
-    else {
+    } else {
         db::add_chapter_data(
             db_conn,
             chapter.id,
