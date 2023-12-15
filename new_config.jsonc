@@ -1,0 +1,65 @@
+{
+  // cron string for scheduling when running as a daemon
+  "Schedule": "0 0 0 * * *",
+  "Mail": {
+    "Name": "Email to send from",
+    "Address": "ThisIsAnEmailAddress@gmail.com",
+    "Password": "Password for the email address (app password if you're using gmail)",
+    // defaults to smtp.gmail.com
+    "SmtpHostname": "smtp.gmail.com",
+    // defaults to 587
+    "SmtpPort": 587,
+    // Can be left empty if you just want to get the epubs locally
+    "Destinations": [
+      {
+        "Name": "Your Name",
+        "Email": "Your Email Address"
+      }
+    ]
+  },
+  "Series": [
+    {
+      // Series classification information for epub header
+      "Title": "Example Series",
+      "Author": "Example Author",
+      "Description": "Example Description",
+      "Classification": "Fantasy",
+      // URL to the series' table of contents
+      "Url": "https://www.exampleseries.com/toc",
+      // Request delay in milliseconds, defaults to 1000
+      "RequestDelay": "1000",
+      "OutputDirectory": "/path/to/output/directory",
+      "GenerateChapterEpubs": true,
+      "Mail": {
+        "SendVolumes": true,
+        "SendChapters": true
+      },
+      "TocFormat": {
+        "VolumeClass": "volume-wrapper",
+        "VolumeTitleTag": "h2",
+        "ChapterClass": "chapter-entry",
+        "ChapterUrlTag": "a"
+      },
+      "ChapterFormat": {
+        "ContentWrapper": "entry-content",
+        "TtitleTag": "entry-title"
+      },
+      // Skip downloading all chapters that satisfy the following rules
+      "SkipRules": {
+        "TitleContains": [
+          "Patron Early Access"
+        ]
+      },
+      // Regex find/replace pairs NOTE: these are Rust regexes, so ensure the correct regex format is used
+      // replace is a standard rust format string
+      // This can be used for things like stripping colour from a common format, or removing/adding styling
+      // to tags
+      "Replace": [
+        {
+          "regex": "<span.*?mrsha-write.*?>(.*?)</span>",
+          "replace": "<em>{}</em>"
+        }
+      ]
+    }
+  ]
+}
