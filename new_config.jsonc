@@ -29,6 +29,7 @@
       // Request delay in milliseconds, defaults to 1000
       "RequestDelay": "1000",
       "OutputDirectory": "/path/to/output/directory",
+      "CoverArtPath": "/path/to/cover/art",
       "GenerateChapterEpubs": true,
       "Mail": {
         "SendVolumes": true,
