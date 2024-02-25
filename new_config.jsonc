@@ -1,5 +1,5 @@
 {
-  // cron string for scheduling when running as a daemon
+  // cron string for schedule when running as a daemon
   "Schedule": "0 0 0 * * *",
   "Mail": {
     "Name": "Email to send from",
@@ -9,7 +9,7 @@
     "SmtpHostname": "smtp.gmail.com",
     // defaults to 587
     "SmtpPort": 587,
-    // Can be left empty if you just want to get the epubs locally
+    // Leave empty to just generate local epubs
     "Destinations": [
       {
         "Name": "Your Name",
@@ -51,6 +51,17 @@
           "Patron Early Access"
         ]
       },
+      // Strip colours from spans with a colour value, and replace with a string with the name of the colour
+      // by default this will look like <lightblue|ORIGINAL TEXT|lightblue>
+      "StripColour": false,
+      // Set the format of the colour replacement string, leave empty to use default the order of delimiters
+      // is outer, inner, inner, outer. i.e. the example below is the default text - <colour|text|colour>
+      "ColourFormat": [
+        "<",
+        "|",
+        "|",
+        ">"
+      ],
       // Regex find/replace pairs NOTE: these are Rust regexes, so ensure the correct regex format is used
       // replace is a standard rust format string
       // This can be used for things like stripping colour from a common format, or removing/adding styling
