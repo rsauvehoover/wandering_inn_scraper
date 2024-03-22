@@ -1,5 +1,6 @@
 {
-  // cron string for schedule when running as a daemon
+  // cron string for schedule when running as a daemon (NOTE: password protected chapters that require the
+  // user to input the password i.e. wandering inn patreon chapters, will not be downloaded when running as daemon)
   "Schedule": "0 0 0 * * *",
   "Mail": {
     "Name": "Email to send from",
@@ -43,9 +44,22 @@
       },
       "ChapterFormat": {
         "ContentWrapper": "entry-content",
-        "TtitleTag": "entry-title"
+        "TitleTag": "entry-title"
+      },
+      // By default embedded images are removed
+      "RemoveImageEmbeds": true,
+      // General settings to do with chapters behind a login form
+      "ProtectedChapters": {
+        // Skip all chapters that contain a password input form
+        "SkipPasswordProtectedChapters": true,
+        // Prompt for password each time the service tries to download a chapter protected by a form
+        "PromptForPassword": true,
+        // Password for forms if consistent - for series where the password is different
+        // if PromptForPassword is set, this setting is ignored
+        "Password": ""
       },
       // Skip downloading all chapters that satisfy the following rules
+      // This can be used to skip more specific chapter types than the SkipPasswordProtectedChapters setting
       "SkipRules": {
         "TitleContains": [
           "Patron Early Access"
