@@ -12,6 +12,8 @@
     // also generate an an epub with colours stripped - will be set to true if any destination has StripColour set to true
     "StripColour": true
   },
+  // Prompt for user to fill in chapter password from patreon, false by default
+  "PatreonPrompt": false,
   // none of these are required if local generation is all you want
   "Mail": {
     "Name": "Email to send from",
@@ -29,7 +31,7 @@
         // If true, will strip colour from the epub, recommended if you use a kindle or other black and white reader
         // Stripped colours will look like <LIGHTSKYBLUE|Some light blue text|LIGHTSKYBLUE>
         "StripColour": true,
-        // If true will send all updated chapters as a single epub per updated volume 
+        // If true will send all updated chapters as a single epub per updated volume
         "SendFullVolumes": true,
         // If true will send an epub for each updated chapter
         "SendIndividualChapters": true
