@@ -22,7 +22,7 @@ pub async fn build_client(parse_patreon: bool) -> Result<Client, Box<dyn std::er
         // prompt user for input value
         let mut password = String::new();
         print!("Enter patreon chapter password: ");
-        stdout().flush();
+        stdout().flush()?;
         stdin().read_line(&mut password).unwrap();
         let password = password.trim();
 
