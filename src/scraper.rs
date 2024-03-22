@@ -1,29 +1,57 @@
-use hyper::{Client, Uri};
-use hyper_tls::HttpsConnector;
 use regex::Regex;
+use reqwest::{cookie::Jar, header::USER_AGENT, Client};
 use rusqlite::{Connection, Result};
 use soup::prelude::*;
+use std::io::{stdin, stdout, Write};
+use std::sync::Arc;
 
 use crate::db;
 
 use std::{thread, time::Duration};
 
-async fn get_html(uri: String) -> Result<String, Box<dyn std::error::Error>> {
-    let https = HttpsConnector::new();
-    let client = Client::builder().build::<_, hyper::Body>(https);
-    let res = client.get(uri.parse::<Uri>().unwrap()).await?;
-    let bytes = hyper::body::to_bytes(res).await?;
-    let body = String::from_utf8(bytes.to_vec()).unwrap();
+pub async fn build_client(parse_patreon: bool) -> Result<Client, Box<dyn std::error::Error>> {
+    let cookie_jar = Arc::new(Jar::default());
+    let client = Client::builder()
+        .cookie_provider(Arc::clone(&cookie_jar))
+        .build()?;
+
+    // also do the patreon login if set to do so
+    if parse_patreon {
+        let login_url = "https://wanderinginn.com/wp-login.php?action=postpass";
+
+        // prompt user for input value
+        let mut password = String::new();
+        print!("Enter patreon chapter password: ");
+        stdout().flush();
+        stdin().read_line(&mut password).unwrap();
+        let password = password.trim();
+
+        client
+            .post(login_url)
+            .header(USER_AGENT, "reqwest")
+            .form(&[("post_password", password), ("Submit", "Submit")])
+            .send()
+            .await?;
+    }
+
+    Ok(client)
+}
+
+async fn get_html(uri: String, client: &Client) -> Result<String, Box<dyn std::error::Error>> {
+    let resp = client.get(uri).send().await?;
+    let body = resp.text().await?;
+
     Ok(body)
 }
 
 pub async fn update_index(
     db_conn: &Connection,
     toc_url: &String,
+    client: &Client,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("(Re)Building index");
 
-    let soup = Soup::new(&get_html(toc_url.to_string()).await?);
+    let soup = Soup::new(&get_html(toc_url.to_string(), client).await?);
 
     for volume in soup.class("volume-wrapper").find_all() {
         let volume_title = volume.tag("h2").find().unwrap().text();
@@ -47,11 +75,17 @@ pub async fn update_index(
 async fn download_chapter(
     db_conn: &Connection,
     chapter: db::Chapter,
+    parse_patreon: bool,
+    client: &Client,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut html_string = get_html(chapter.uri).await?;
+    let mut html_string = get_html(chapter.uri, client).await?;
 
     let escape_re = Regex::new(r"(?:&)((?:lt|gt|nbsp);)").unwrap();
-    html_string = escape_re.replace_all(&html_string, |captures: &regex::Captures| format!("&amp;{}", &captures[1])).to_string();
+    html_string = escape_re
+        .replace_all(&html_string, |captures: &regex::Captures| {
+            format!("&amp;{}", &captures[1])
+        })
+        .to_string();
 
     let soup = Soup::new(&html_string);
     let html = soup.class("entry-content").find().unwrap();
@@ -80,10 +114,9 @@ async fn download_chapter(
     let body = html.display();
     let footer = "</body></html>";
 
-    if is_patreon_chapter {
+    if is_patreon_chapter && !parse_patreon {
         db::remove_chapter(db_conn, chapter.id)?;
-    }
-    else {
+    } else {
         db::add_chapter_data(
             db_conn,
             chapter.id,
@@ -102,6 +135,8 @@ async fn download_chapter(
 pub async fn download_all_chapters(
     db_conn: &Connection,
     delay: &u64,
+    parse_patreon: bool,
+    client: &Client,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let chapters = db::get_empty_chapters(db_conn)?;
 
@@ -116,7 +151,7 @@ pub async fn download_all_chapters(
             println!("Downloaded {} chapters", count);
         }
         thread::sleep(Duration::from_millis(*delay));
-        download_chapter(db_conn, chapter).await?;
+        download_chapter(db_conn, chapter, parse_patreon, client).await?;
         count += 1;
     }
     println!(

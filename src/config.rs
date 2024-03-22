@@ -71,6 +71,7 @@ pub struct Config {
     // number of seconds to wait before allowing another request to be made
     // avoids being ip banned
     pub request_delay: u64,
+    pub patreon_prompt: bool,
 }
 impl Default for Config {
     fn default() -> Self {
@@ -79,6 +80,7 @@ impl Default for Config {
             request_delay: 1000,
             mail: MailConfig::default(),
             epub_gen: EpubGenConfig::default(),
+            patreon_prompt: false,
         }
     }
 }
