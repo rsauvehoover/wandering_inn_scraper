@@ -1,6 +1,12 @@
 # New Scraper
 
 - Handle patreon and other password based forms
+  - Chapters which are detected to be a patreon chapter have `early_access` set
+    - early access chapters will not be have an epub generated if
+      `SkipPasswordProtectedChapters` is configured to `true`
+    - early access chapters will be re-downloaded on each run, to ensure they
+      are properly updated once they are no longer early access (i.e. title has
+      changed)
   - Detect whether a chapter is locked behind a form and then post a request to
     get auth cookies (assuming usual wordpress sites)
   - In general, any request that fails to authenticate, or has
@@ -43,8 +49,8 @@ i.e.
 Use the same database setup as before
 
 volume (id: P_KEY, name: string, regenerate_epub: bool) chapter (id: P_KEY,
-name: string, uri: string, volume: FOREIGN_KEY, data: FOREIGN_KEY,
-regenerate_epub: bool) data: (chapter_id: FOREIGN_KEY, data: string)
+name: string, uri: string, volume: FOREIGN_KEY, data: FOREIGN_KEY, early_access:
+bool) data: (chapter_id: FOREIGN_KEY, data: string)
 
 ## Other todo features
 

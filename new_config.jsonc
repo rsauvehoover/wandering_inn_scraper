@@ -49,9 +49,22 @@
       // By default embedded images are removed
       "RemoveImageEmbeds": true,
       // General settings to do with chapters behind a login form
-      "ProtectedChapters": {
+      "EarlyAccessChapters": {
+        // Whether to match on the chapter title to determine whether a chapter is early access
+        "MatchOnTitle": true,
+        "Title": {
+          // If true, all strings in Contains must be present in the title to be matched
+          // otherwise any strings matching is sufficient
+          "MatchAll": false,
+          // A list of strings early access titles will contain one of
+          "Contains": [
+            "Patron Early Access"
+          ]
+        },
+        // Assumes that any chapter with a form within the content div will be early access
+        "MatchOnForm": false,
         // Skip all chapters that contain a password input form
-        "SkipPasswordProtectedChapters": true,
+        "SkipEarlyAccessChapters": true,
         // Prompt for password each time the service tries to download a chapter protected by a form
         "PromptForPassword": true,
         // Password for forms if consistent - for series where the password is different
@@ -59,10 +72,10 @@
         "Password": ""
       },
       // Skip downloading all chapters that satisfy the following rules
-      // This can be used to skip more specific chapter types than the SkipPasswordProtectedChapters setting
+      // This can be used to skip
       "SkipRules": {
         "TitleContains": [
-          "Patron Early Access"
+          "Skip titles with this"
         ]
       },
       // Strip colours from spans with a colour value, and replace with a string with the name of the colour
