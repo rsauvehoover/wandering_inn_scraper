@@ -75,5 +75,4 @@ pub async fn send_epubs(
             }
         }
     }
-    ()
 }

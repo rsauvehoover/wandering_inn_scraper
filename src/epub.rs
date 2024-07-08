@@ -1,6 +1,5 @@
 use color_name::Color;
 use epub_builder::{EpubBuilder, EpubContent, ZipLibrary};
-use hex;
 use image::io::Reader as ImageReader;
 use image::Rgba;
 use imageproc::drawing::draw_text_mut;
@@ -35,9 +34,9 @@ fn generate_cover(
         112,
         Scale::uniform(30.0),
         &font,
-        &volume_title,
+        volume_title,
     );
-    std::fs::create_dir_all(&output_dir)?;
+    std::fs::create_dir_all(output_dir)?;
     let path = output_dir.join(format!("{}.png", &volume_title));
     img.save(&path)?;
     Ok(path)
@@ -137,7 +136,7 @@ fn generate_chapters(
 ) -> Result<Vec<Attachment>, Box<dyn std::error::Error>> {
     std::fs::create_dir_all(output_dir.join("combined"))?;
 
-    if chapters.len() == 0 {
+    if chapters.is_empty() {
         return Ok(Vec::<Attachment>::default());
     }
 
@@ -193,7 +192,7 @@ fn generate_chapters(
         attachments.push(generate_chapter(
             db_conn,
             chapter,
-            &output_dir,
+            output_dir,
             strip_colour,
         )?);
         db::update_generated_chapter(db_conn, chapter.id, false)?;
@@ -205,7 +204,7 @@ fn generate_chapters(
         "{}({})-{}({}).epub",
         chapters[0].id, chapters[0].name, last_chapter.id, last_chapter.name
     )))?;
-    file.write(&combined_output)?;
+    file.write_all(&combined_output)?;
     Ok(attachments)
 }
 
@@ -256,7 +255,7 @@ fn generate_volume(
 
     epub.generate(&mut output)?;
 
-    std::fs::create_dir_all(&output_dir)?;
+    std::fs::create_dir_all(output_dir)?;
 
     let filename = format!("{}.epub", volume.name);
 
@@ -283,7 +282,7 @@ pub async fn generate_epubs(
     if config.epub_gen.volumes {
         let volumes = db::get_volumes_to_regenerate(db_conn)?;
 
-        if volumes.len() == 0 {
+        if volumes.is_empty() {
             println!("No volumes to generate");
         } else {
             println!("Generating epubs for {} volumes", volumes.len());
@@ -316,7 +315,7 @@ pub async fn generate_epubs(
 
     if config.epub_gen.chapters {
         let chapters = db::get_chapters_to_regenerate(db_conn)?;
-        if chapters.len() == 0 {
+        if chapters.is_empty() {
             println!("No chapters to generate");
             return Ok(());
         }

@@ -140,7 +140,7 @@ pub async fn download_all_chapters(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let chapters = db::get_empty_chapters(db_conn)?;
 
-    if chapters.len() == 0 {
+    if chapters.is_empty() {
         println!("No chapters to download");
     } else {
         println!("Downloading {} missing chapters", chapters.len());
@@ -159,7 +159,7 @@ pub async fn download_all_chapters(
         if count > 0 {
             format!("Done downloading {count} chapters")
         } else {
-            format!("No chapters to download")
+            "No chapters to download".to_string()
         }
     );
     Ok(())

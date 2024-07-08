@@ -62,11 +62,9 @@ pub fn add_volume(db_conn: &Connection, name: &String) -> Result<usize> {
     db_conn
         .prepare("INSERT OR IGNORE INTO volumes(name) values(?1)")?
         .execute([name])?;
-    Ok(
-        db_conn.query_row("SELECT id FROM volumes WHERE name = ?1", [name], |row| {
-            row.get(0)
-        })?,
-    )
+    db_conn.query_row("SELECT id FROM volumes WHERE name = ?1", [name], |row| {
+        row.get(0)
+    })
 }
 
 pub fn add_chapter(db_conn: &Connection, name: String, uri: String, volume: usize) -> Result<()> {
@@ -124,38 +122,33 @@ fn chapter_query_helper<P>(db_conn: &Connection, sql: &str, params: P) -> Result
 where
     P: Params,
 {
-    let mut stmt = db_conn.prepare(sql)?;
-    let res = stmt
+    db_conn
+        .prepare(sql)?
         .query_map(params, |row| {
             Ok(Chapter {
                 id: row.get(0)?,
                 name: row.get(1)?,
                 uri: row.get(2)?,
                 volumeid: row.get(3)?,
-                data_id: match row.get(4) {
-                    Ok(id) => id,
-                    Err(_) => 0,
-                },
+                data_id: row.get(4).unwrap_or(0),
             })
         })?
-        .collect();
-    res
+        .collect()
 }
 
 fn volume_query_helper<P>(db_conn: &Connection, sql: &str, params: P) -> Result<Vec<Volume>>
 where
     P: Params,
 {
-    let mut stmt = db_conn.prepare(sql)?;
-    let res = stmt
+    db_conn
+        .prepare(sql)?
         .query_map(params, |row| {
             Ok(Volume {
                 id: row.get(0)?,
                 name: row.get(1)?,
             })
         })?
-        .collect();
-    res
+        .collect()
 }
 
 pub fn get_chapter_data(db_conn: &Connection, chapter_id: usize) -> Result<String> {
@@ -168,39 +161,35 @@ pub fn get_chapter_data(db_conn: &Connection, chapter_id: usize) -> Result<Strin
 }
 
 pub fn get_chapters_by_volume(db_conn: &Connection, volume_id: usize) -> Result<Vec<Chapter>> {
-    let res = chapter_query_helper(
+    chapter_query_helper(
         db_conn,
         "SELECT id, name, uri, volumeid, data_id FROM chapters WHERE volumeid = ?1",
         [volume_id],
-    );
-    res
+    )
 }
 
 pub fn get_empty_chapters(db_conn: &Connection) -> Result<Vec<Chapter>> {
-    let res = chapter_query_helper(
+    chapter_query_helper(
         db_conn,
         "SELECT id, name, uri, volumeid, data_id FROM chapters WHERE data_id IS NULL",
         [],
-    );
-    res
+    )
 }
 
 pub fn get_chapters_to_regenerate(db_conn: &Connection) -> Result<Vec<Chapter>> {
-    let res = chapter_query_helper(
+    chapter_query_helper(
         db_conn,
         "SELECT id, name, uri, volumeid, data_id FROM chapters WHERE regenerate_epub = 1",
         [],
-    );
-    res
+    )
 }
 
 pub fn get_volumes_to_regenerate(db_conn: &Connection) -> Result<Vec<Volume>> {
-    let res = volume_query_helper(
+    volume_query_helper(
         db_conn,
         "SELECT id, name FROM volumes WHERE regenerate_epub = 1",
         [],
-    );
-    res
+    )
 }
 
 pub fn update_generated_volume(db_conn: &Connection, id: usize, regenerate: bool) -> Result<()> {
