@@ -17,12 +17,24 @@ async fn main() {
         }
     };
 
-    match scraper::update_index(&conn, &config.toc_url).await {
+    let client = match scraper::build_client(config.patreon_prompt).await {
+        Ok(client) => client,
+        Err(e) => panic!("Error building request client: {}", e),
+    };
+
+    match scraper::update_index(&conn, &config.toc_url, &client).await {
         Ok(_) => (),
         Err(e) => panic!("Error updating index: {}", e),
     }
 
-    match scraper::download_all_chapters(&conn, &config.request_delay).await {
+    match scraper::download_all_chapters(
+        &conn,
+        &config.request_delay,
+        config.patreon_prompt,
+        &client,
+    )
+    .await
+    {
         Ok(_) => (),
         Err(e) => panic!("Error getting chapters: {}", e),
     }
