@@ -1,5 +1,8 @@
 # New Scraper
 
+- Handle chapters with links to sub-chapters
+  - possibly implement scraping through prev/next links in chapters as opposed to TOC
+
 - Handle patreon and other password based forms
   - Chapters which are detected to be a patreon chapter have `early_access` set
     - early access chapters will not be have an epub generated if
