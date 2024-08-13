@@ -110,9 +110,25 @@ async fn download_chapter(
     let patron_re = Regex::new(r"(?i)Patron Early Access").unwrap();
     let is_patreon_chapter = patron_re.is_match(&title);
 
-    let re = Regex::new(r"<a.*?</a>").unwrap();
+    let nav_re = Regex::new(r#"<a.*(Previous Chapter|Next Chapter).*</a>"#).unwrap();
+    let re = Regex::new(r#"<a href="(https://wanderinginn\.com/.*?)">.*?</a>"#).unwrap();
     let body = html.display();
+    let stripped_body = nav_re.replace_all(&body, "");
     let footer = "</body></html>";
+
+    let links: Vec<_> = re
+        .captures_iter(&stripped_body)
+        .map(|c| c.get(1).unwrap().as_str())
+        .collect();
+
+    for link in links {
+        db::add_chapter(
+            db_conn,
+            format!("{}+", chapter.name),
+            link.to_string(),
+            chapter.volumeid,
+        )?;
+    }
 
     if is_patreon_chapter && !parse_patreon {
         db::remove_chapter(db_conn, chapter.id)?;
@@ -120,13 +136,7 @@ async fn download_chapter(
         db::add_chapter_data(
             db_conn,
             chapter.id,
-            &format!(
-                "{}\n{}\n{}\n{}\n",
-                header,
-                title,
-                re.replace_all(&body, ""),
-                footer
-            ),
+            &format!("{}\n{}\n{}\n{}\n", header, title, stripped_body, footer),
         )?;
     }
     Ok(())
@@ -137,8 +147,8 @@ pub async fn download_all_chapters(
     delay: &u64,
     parse_patreon: bool,
     client: &Client,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let chapters = db::get_empty_chapters(db_conn)?;
+) -> Result<bool, Box<dyn std::error::Error>> {
+    let chapters = db::get_empty_chapters(db_conn).unwrap();
 
     if chapters.is_empty() {
         println!("No chapters to download");
@@ -151,9 +161,18 @@ pub async fn download_all_chapters(
             println!("Downloaded {} chapters", count);
         }
         thread::sleep(Duration::from_millis(*delay));
-        download_chapter(db_conn, chapter, parse_patreon, client).await?;
+        download_chapter(db_conn, chapter, parse_patreon, client)
+            .await
+            .unwrap();
         count += 1;
     }
+
+    let remaining_empty_chapters = db::get_empty_chapters(db_conn).unwrap();
+
+    if !remaining_empty_chapters.is_empty() {
+        return Ok(true);
+    }
+
     println!(
         "{}",
         if count > 0 {
@@ -162,5 +181,5 @@ pub async fn download_all_chapters(
             "No chapters to download".to_string()
         }
     );
-    Ok(())
+    Ok(false)
 }
