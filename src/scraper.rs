@@ -111,9 +111,11 @@ async fn download_chapter(
     let is_patreon_chapter = patron_re.is_match(&title);
 
     let nav_re = Regex::new(r#"<a.*(Previous Chapter|Next Chapter).*</a>"#).unwrap();
+    let img_re = Regex::new(r#"<a.*i0\.wp\.com.*</a>"#).unwrap();
     let re = Regex::new(r#"<a href="(https://wanderinginn\.com/.*?)">.*?</a>"#).unwrap();
     let body = html.display();
-    let stripped_body = nav_re.replace_all(&body, "");
+    let nav_stripped = nav_re.replace_all(&body, "");
+    let stripped_body = img_re.replace_all(&nav_stripped, "");
     let footer = "</body></html>";
 
     let links: Vec<_> = re
