@@ -65,10 +65,15 @@ fn strip_chapter_colour(chapter_data: &str) -> String {
 
 fn replace_mrsha_write(chapter_data: &str) -> String {
     let re = Regex::new(r#"<span.*?mrsha-write.*?>(.*?)</span>"#).unwrap();
-    re.replace_all(chapter_data, |captures: &regex::Captures| {
+    let em_re = Regex::new(r#"(<em>.*?</em>)"#).unwrap();
+    let mrsha_stripped = re.replace_all(chapter_data, |captures: &regex::Captures| {
         format!("<em>{}</em>", &captures[1])
-    })
-    .to_string()
+    });
+    em_re
+        .replace_all(&mrsha_stripped, |captures: &regex::Captures| {
+            format!("{} ", &captures[1])
+        })
+        .to_string()
 }
 
 fn generate_chapter(

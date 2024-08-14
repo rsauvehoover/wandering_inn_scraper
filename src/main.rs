@@ -27,16 +27,20 @@ async fn main() {
         Err(e) => panic!("Error updating index: {}", e),
     }
 
-    match scraper::download_all_chapters(
-        &conn,
-        &config.request_delay,
-        config.patreon_prompt,
-        &client,
-    )
-    .await
-    {
-        Ok(_) => (),
-        Err(e) => panic!("Error getting chapters: {}", e),
+    let mut continue_download = true;
+
+    while continue_download {
+        match scraper::download_all_chapters(
+            &conn,
+            &config.request_delay,
+            config.patreon_prompt,
+            &client,
+        )
+        .await
+        {
+            Ok(val) => continue_download = val,
+            Err(e) => panic!("Error getting chapters: {}", e),
+        }
     }
 
     match epub::generate_epubs(&conn, Path::new("build/"), &config).await {
