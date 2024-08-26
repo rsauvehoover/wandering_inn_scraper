@@ -1,9 +1,11 @@
 # New Scraper
 
 - Handle chapters with links to sub-chapters
+
   - possibly implement scraping through prev/next links in chapters as opposed to TOC
 
 - Handle patreon and other password based forms
+
   - Chapters which are detected to be a patreon chapter have `early_access` set
     - early access chapters will not be have an epub generated if
       `SkipPasswordProtectedChapters` is configured to `true`
@@ -42,6 +44,8 @@ i.e.
 
 - Epub cover art
   - Provide base cover art, overlay text same as in current version
+    - configurable cover art - path to image
+  - title should wrap text properly - no orphans etc.
 - Post scrape replacements
   - Regex find and replace strings to be applied in order on the body of the
     scraped chapter. i.e. `r#"<span.*?mrsha-write.*?>(.*?)</span>"#` with
@@ -51,15 +55,17 @@ i.e.
 
 Use the same database setup as before
 
-volume (id: P_KEY, name: string, regenerate_epub: bool) chapter (id: P_KEY,
+volume (id: P_KEY, name: string, regenerate_epub: bool) chapter (id: P_KEY, number: int,
 name: string, uri: string, volume: FOREIGN_KEY, data: FOREIGN_KEY, early_access:
 bool) data: (chapter_id: FOREIGN_KEY, data: string)
+
+sequential chapter numbering epub name {number}-{name}
 
 ## Other todo features
 
 - Continue to support auto mail send
-- Daemon mode - run on schedule (will not support password scraping password
-  protected chapters that require use input)
+- Daemon mode - run on schedule (will not support scraping password
+  protected chapters)
 - Still support sending bundled volumes or individual chapters
   - no need for bundled recent chapters
 - use scraper https://docs.rs/scraper/latest/scraper/ instead of soup
