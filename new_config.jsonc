@@ -1,6 +1,7 @@
 {
-  // cron string for schedule when running as a daemon (NOTE: password protected chapters that require the
-  // user to input the password i.e. wandering inn patreon chapters, will not be downloaded when running as daemon)
+  // cron string for schedule when running as a daemon
+  // NOTE: password protected chapters that require the
+  // user to input the password i.e. patreon chapters, will not be downloaded when running as daemon
   "Schedule": "0 0 0 * * *",
   "Mail": {
     "Name": "Email to send from",
@@ -14,9 +15,9 @@
     "Destinations": [
       {
         "Name": "Your Name",
-        "Email": "Your Email Address"
-      }
-    ]
+        "Email": "Your Email Address",
+      },
+    ],
   },
   "Series": [
     {
@@ -34,17 +35,17 @@
       "GenerateChapterEpubs": true,
       "Mail": {
         "SendVolumes": true,
-        "SendChapters": true
+        "SendChapters": true,
       },
       "TocFormat": {
         "VolumeClass": "volume-wrapper",
         "VolumeTitleTag": "h2",
         "ChapterClass": "chapter-entry",
-        "ChapterUrlTag": "a"
+        "ChapterUrlTag": "a",
       },
       "ChapterFormat": {
         "ContentWrapper": "entry-content",
-        "TitleTag": "entry-title"
+        "TitleTag": "entry-title",
       },
       // By default embedded images are removed
       "RemoveImageEmbeds": true,
@@ -59,7 +60,7 @@
           // A list of strings early access titles will contain one of
           "Contains": [
             "Patron Early Access"
-          ]
+          ],
         },
         // Assumes that any chapter with a form within the content div will be early access
         "MatchOnForm": false,
@@ -69,14 +70,14 @@
         "PromptForPassword": true,
         // Password for forms if consistent - for series where the password is different
         // if PromptForPassword is set, this setting is ignored
-        "Password": ""
+        "Password": "",
       },
       // Skip downloading all chapters that satisfy the following rules
       // This can be used to skip
       "SkipRules": {
         "TitleContains": [
           "Skip titles with this"
-        ]
+        ],
       },
       // Strip colours from spans with a colour value, and replace with a string with the name of the colour
       // by default this will look like <lightblue|ORIGINAL TEXT|lightblue>
@@ -89,16 +90,17 @@
         "|",
         ">"
       ],
-      // Regex find/replace pairs NOTE: these are Rust regexes, so ensure the correct regex format is used
+      // Regex find/replace pairs
+      // NOTE: these are Rust regexes, so ensure the correct regex format is used
       // replace is a standard rust format string
-      // This can be used for things like stripping colour from a common format, or removing/adding styling
+      // This can be used for things like stripping colour from a common format, or removing/adding styling to common strings
       // to tags
       "Replace": [
         {
           "regex": "<span.*?mrsha-write.*?>(.*?)</span>",
-          "replace": "<em>{}</em>"
-        }
-      ]
-    }
-  ]
+          "replace": "<em>{}</em>",
+        },
+      ],
+    },
+  ],
 }
