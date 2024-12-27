@@ -1,19 +1,15 @@
 use regex::Regex;
-use reqwest::{cookie::Jar, header::USER_AGENT, Client};
+use reqwest::{header::USER_AGENT, Client};
 use rusqlite::{Connection, Result};
 use soup::prelude::*;
 use std::io::{stdin, stdout, Write};
-use std::sync::Arc;
 
 use crate::db;
 
 use std::{thread, time::Duration};
 
 pub async fn build_client(parse_patreon: bool) -> Result<Client, Box<dyn std::error::Error>> {
-    let cookie_jar = Arc::new(Jar::default());
-    let client = Client::builder()
-        .cookie_provider(Arc::clone(&cookie_jar))
-        .build()?;
+    let client = Client::builder().cookie_store(true).build()?;
 
     // also do the patreon login if set to do so
     if parse_patreon {
@@ -38,9 +34,8 @@ pub async fn build_client(parse_patreon: bool) -> Result<Client, Box<dyn std::er
 }
 
 async fn get_html(uri: String, client: &Client) -> Result<String, Box<dyn std::error::Error>> {
-    let resp = client.get(uri).send().await?;
+    let resp = client.get(uri).header(USER_AGENT, "reqwest").send().await?;
     let body = resp.text().await?;
-
     Ok(body)
 }
 
