@@ -292,20 +292,20 @@ pub async fn generate_epubs(
             println!("Generating epub for {}", volume.name);
             let chapters = db::get_chapters_by_volume(db_conn, volume.id)?;
             if config.epub_gen.strip_colour {
-                vols_stripped.push(generate_volume(
+                vols.push(generate_volume(
                     db_conn,
                     &volume,
                     &chapters,
-                    &build_dir.join("volumes"),
-                    false,
+                    &build_dir.join("volumes_stripped_colour"),
+                    true,
                 )?);
             }
-            vols.push(generate_volume(
+            vols_stripped.push(generate_volume(
                 db_conn,
                 &volume,
                 &chapters,
-                &build_dir.join("volumes_stripped_colour"),
-                true,
+                &build_dir.join("volumes"),
+                false,
             )?);
             db::update_generated_volume(db_conn, volume.id, false)?;
         }

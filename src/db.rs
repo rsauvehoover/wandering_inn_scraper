@@ -5,8 +5,8 @@ pub struct Chapter {
     pub id: usize,
     pub name: String,
     pub uri: String,
-    pub volumeid: usize,
-    pub data_id: usize,
+    pub _volumeid: usize,
+    pub _data_id: usize,
 }
 
 pub struct Volume {
@@ -82,17 +82,14 @@ pub fn remove_chapter(db_conn: &Connection, chapter_id: usize) -> Result<()> {
 }
 
 pub fn add_chapter_data(db_conn: &Connection, chapter_id: usize, data: &String) -> Result<()> {
-    let existing_data = match db_conn
+    let existing_data: String = (db_conn
         .query_row(
             "SELECT data FROM raw_data WHERE chapter_id = ?1",
             [chapter_id],
             |row| row.get(0),
         )
-        .optional()?
-    {
-        Some(data) => data,
-        None => String::from(""),
-    };
+        .optional()?)
+    .unwrap_or_default();
 
     db_conn
         .prepare("INSERT OR REPLACE INTO raw_data(data, chapter_id) values(?1, ?2)")?
@@ -129,8 +126,8 @@ where
                 id: row.get(0)?,
                 name: row.get(1)?,
                 uri: row.get(2)?,
-                volumeid: row.get(3)?,
-                data_id: row.get(4).unwrap_or(0),
+                _volumeid: row.get(3)?,
+                _data_id: row.get(4).unwrap_or(0),
             })
         })?
         .collect()
